@@ -114,6 +114,14 @@
                     "LastDoubleCapFixFormat":  "이중 대문자 교정: «{0}» → «{1}»",
                     "CheckIgnoreProfanity":  "비속어나 은어를 일반 단어로 수정하지 않기",
                     "StatMin":  "분",
-                    "StatSec":  "초"
+                    "StatSec":  "초",
+                    "BtnAddLanguage":  "+ 언어 / 자판 배열 추가...",
+                    "AddLanguageTitle":  "언어 및 키보드 배열 추가",
+                    "AddLanguageSearchHint":  "이름, 코드(DE, FR, PL) 또는 Windows KLID(예: 00000412)로 검색:",
+                    "BadgeDictConnected":  "✓ 사전 연결됨",
+                    "BadgeDictManualOnly":  "Alt+Alt",
+                    "TooltipDictConnected":  "사전 로드됨 ({0}단어): 자동 전환 및 오타 교정 활성화",
+                    "TooltipDictMissing":  "사전 없음: 수동 변환(Alt+Alt) 작동; «내 사전» 탭에서 사전을 불러오세요",
+                    "InstalledInWindowsTag":  "Windows"
                 }
 }

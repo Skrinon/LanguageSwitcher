@@ -114,6 +114,14 @@
                     "LastDoubleCapFixFormat":  "Double capital fixed: «{0}» → «{1}»",
                     "CheckIgnoreProfanity":  "Do not correct profanity and slang into regular words",
                     "StatMin":  "min",
-                    "StatSec":  "sec"
+                    "StatSec":  "sec",
+                    "BtnAddLanguage":  "+ Add language / layout...",
+                    "AddLanguageTitle":  "Add language \u0026 keyboard layout",
+                    "AddLanguageSearchHint":  "Search by name, badge (DE, FR, PL) or Windows KLID (e.g. 00000407):",
+                    "BadgeDictConnected":  "✓ Dictionary",
+                    "BadgeDictManualOnly":  "Alt+Alt",
+                    "TooltipDictConnected":  "Dictionary loaded ({0} words): auto-switch and typo correction are active",
+                    "TooltipDictMissing":  "No dictionary: manual conversion (Alt+Alt) works; load a dictionary in the My Dictionary tab",
+                    "InstalledInWindowsTag":  "Windows"
                 }
 }

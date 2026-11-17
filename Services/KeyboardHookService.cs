@@ -15,7 +15,7 @@ namespace LanguageSwitcher.Services
         public string TypedWord { get; }
         public char DelimiterChar { get; }
         public bool IsEnterDelimiter { get; }
-        public SupportedLanguage? ActiveWindowLanguage { get; }
+        public string? ActiveWindowLanguage { get; }
         public IntPtr ForegroundHwnd { get; }
         public bool IsBurstTyping { get; }
 
@@ -23,7 +23,7 @@ namespace LanguageSwitcher.Services
             string typedWord,
             char delimiterChar,
             bool isEnterDelimiter,
-            SupportedLanguage? activeWindowLanguage,
+            string? activeWindowLanguage,
             IntPtr foregroundHwnd,
             bool isBurstTyping = false)
         {
@@ -180,10 +180,9 @@ namespace LanguageSwitcher.Services
         public bool IsPaused { get; set; }
 
         /// <summary>
-        /// Предикат, определяющий, считать ли пунктуацию (., ; : ?) разделителем слова в английской раскладке.
-        /// Позволяет не разрывать слова вроде k.,k. ("люблю"), но сразу переключать ghbdtn, или hello.
+        /// Предикат, определяющий, считать ли пунктуацию (., ; : ?) разделителем слова в текущей раскладке.
         /// </summary>
-        public Func<string, char, SupportedLanguage?, bool>? ShouldTreatPunctuationAsDelimiter { get; set; }
+        public Func<string, char, string?, bool>? ShouldTreatPunctuationAsDelimiter { get; set; }
 
         /// <summary>
         /// Событие срабатывания двойного нажатия Left Alt (вызывается в UI-потоке Dispatcher).
@@ -278,9 +277,9 @@ namespace LanguageSwitcher.Services
         }
 
         /// <summary>
-        /// Определяет язык текущей активной раскладки клавиатуры в указанном окне (учитывая дочернее окно фокуса).
+        /// Определяет KLID текущей активной раскладки клавиатуры в указанном окне (учитывая дочернее окно фокуса).
         /// </summary>
-        public static SupportedLanguage? GetWindowKeyboardLanguage(IntPtr hwnd)
+        public static string? GetWindowKeyboardLanguage(IntPtr hwnd, AppSettings? settings = null)
         {
             if (hwnd == IntPtr.Zero)
             {
@@ -313,8 +312,7 @@ namespace LanguageSwitcher.Services
                 return null;
             }
 
-            ushort langId = (ushort)(hkl.ToInt64() & 0xFFFF);
-            return LanguageCatalog.TryFromLanguageId(langId);
+            return UniversalLayoutService.Instance.ResolveKlidFromHkl(hkl, settings);
         }
 
         /// <summary>
@@ -530,11 +528,23 @@ namespace LanguageSwitcher.Services
                 return;
             }
 
-            bool isCtrlDown = IsKeyDownAsync(VK_CONTROL) || IsKeyDownAsync(VK_LCONTROL) || IsKeyDownAsync(VK_RCONTROL);
-            bool isAltDown = IsKeyDownAsync(VK_MENU) || IsKeyDownAsync(VK_LMENU) || IsKeyDownAsync(VK_RMENU);
+            bool isRightAltDown = IsKeyDownAsync(VK_RMENU);
+            bool isLeftAltDown = IsKeyDownAsync(VK_LMENU);
+            bool isLeftCtrlDown = IsKeyDownAsync(VK_LCONTROL);
+            bool isRightCtrlDown = IsKeyDownAsync(VK_RCONTROL);
+            bool isGenericCtrlDown = IsKeyDownAsync(VK_CONTROL) && !isLeftCtrlDown && !isRightCtrlDown;
+            bool isGenericAltDown = IsKeyDownAsync(VK_MENU) && !isLeftAltDown && !isRightAltDown;
             bool isWinDown = IsKeyDownAsync(VK_LWIN) || IsKeyDownAsync(VK_RWIN);
 
-            if (isCtrlDown || isAltDown || isWinDown)
+            // AltGr в Windows выглядит как RMENU (+ возможно LCONTROL), не сбрасываем слово при вводе символов с AltGr
+            bool isShortcutModifierDown = isWinDown
+                || isLeftAltDown
+                || isRightCtrlDown
+                || (isLeftCtrlDown && !isRightAltDown)
+                || (isGenericCtrlDown && !isRightAltDown)
+                || (isGenericAltDown && !isRightAltDown);
+
+            if (isShortcutModifierDown)
             {
                 ResetTrackedWord();
                 RaiseInputContextReset();
@@ -636,13 +646,16 @@ namespace LanguageSwitcher.Services
             {
                 long keyTimestamp = Stopwatch.GetTimestamp();
                 char? typedChar = TranslateVkToChar(vkCode, scanCode, foreground);
-                SupportedLanguage? windowLang = GetWindowKeyboardLanguage(foreground);
+                string? windowLang = GetWindowKeyboardLanguage(foreground);
 
                 if (typedChar.HasValue && IsPunctuationDelimiterCandidate(typedChar.Value))
                 {
-                    bool treatAsDelimiter = typedChar.Value == '!'
-                        || windowLang == SupportedLanguage.Russian
-                        || windowLang == SupportedLanguage.Ukrainian;
+                    bool isRuOrUkWindow = !string.IsNullOrEmpty(windowLang)
+                        && (string.Equals(windowLang, UniversalLayoutService.RussianKlid, StringComparison.OrdinalIgnoreCase)
+                            || string.Equals(windowLang, UniversalLayoutService.UkrainianKlid, StringComparison.OrdinalIgnoreCase)
+                            || string.Equals(windowLang, UniversalLayoutService.UkrainianEnhancedKlid, StringComparison.OrdinalIgnoreCase));
+
+                    bool treatAsDelimiter = typedChar.Value == '!' || isRuOrUkWindow;
 
                     if (!treatAsDelimiter && ShouldTreatPunctuationAsDelimiter != null)
                     {
@@ -720,7 +733,7 @@ namespace LanguageSwitcher.Services
 
         private void RaiseWordDelimiterTyped(string word, char delimiter, bool isEnter, IntPtr foreground, bool isBurstTyping)
         {
-            SupportedLanguage? windowLang = GetWindowKeyboardLanguage(foreground);
+            string? windowLang = GetWindowKeyboardLanguage(foreground);
             var args = new WordDelimiterEventArgs(word, delimiter, isEnter, windowLang, foreground, isBurstTyping);
 
             _dispatcher.BeginInvoke(
@@ -737,6 +750,13 @@ namespace LanguageSwitcher.Services
             if (IsKeyDownAsync(VK_SHIFT) || IsKeyDownAsync(VK_LSHIFT) || IsKeyDownAsync(VK_RSHIFT))
             {
                 keyState[VK_SHIFT] = 0x80;
+            }
+
+            if (IsKeyDownAsync(VK_RMENU))
+            {
+                keyState[VK_CONTROL] = 0x80;
+                keyState[VK_MENU] = 0x80;
+                keyState[VK_RMENU] = 0x80;
             }
 
             if ((GetKeyState((int)VK_CAPITAL) & 0x0001) != 0)

@@ -191,9 +191,9 @@ namespace LanguageSwitcher.Services
                 // Merge: добавляем отсутствующие записи к текущим без удаления существующих
                 _dictionaryService.AddIgnoredWords(backup.IgnoredWords);
 
-                foreach (IGrouping<SupportedLanguage, UserDictionaryEntry> group in backup.UserDictionary
-                    .Where(e => e != null && Enum.IsDefined(typeof(SupportedLanguage), e.Language))
-                    .GroupBy(e => e.Language))
+                foreach (IGrouping<string, UserDictionaryEntry> group in backup.UserDictionary
+                    .Where(e => e != null && !string.IsNullOrWhiteSpace(e.Word))
+                    .GroupBy(e => UniversalLayoutService.Instance.NormalizeKlid(e.Language), StringComparer.OrdinalIgnoreCase))
                 {
                     _dictionaryService.AddUserWords(group.Select(g => g.Word), group.Key);
                 }
@@ -253,7 +253,8 @@ namespace LanguageSwitcher.Services
             destination.InterfaceLanguage = source.InterfaceLanguage;
             destination.UseDefaultSourceLanguage = source.UseDefaultSourceLanguage;
             destination.DefaultSourceLanguage = source.DefaultSourceLanguage;
-            destination.TargetLanguages = new List<SupportedLanguage>(source.TargetLanguages);
+            destination.AddedLanguages = new List<string>(source.AddedLanguages);
+            destination.TargetLanguages = new List<string>(source.TargetLanguages);
             destination.AutoSwitchLayout = source.AutoSwitchLayout;
             destination.AutoCorrectTypos = source.AutoCorrectTypos;
             destination.IgnoreProfanityInTypoCorrection = source.IgnoreProfanityInTypoCorrection;

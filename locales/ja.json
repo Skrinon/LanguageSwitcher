@@ -114,6 +114,14 @@
                     "LastDoubleCapFixFormat":  "大文字修正：「{0}」→「{1}」",
                     "CheckIgnoreProfanity":  "スラングや不適切な語を通常の単語に修正しない",
                     "StatMin":  "分",
-                    "StatSec":  "秒"
+                    "StatSec":  "秒",
+                    "BtnAddLanguage":  "+ 言語 / レイアウトを追加...",
+                    "AddLanguageTitle":  "言語とキーボード配列の追加",
+                    "AddLanguageSearchHint":  "名前、コード (DE, FR, PL)、または Windows KLID (例: 00000407) で検索:",
+                    "BadgeDictConnected":  "✓ 辞書あり",
+                    "BadgeDictManualOnly":  "Alt+Alt",
+                    "TooltipDictConnected":  "辞書読み込み済み ({0} 語): 自動切替と誤字修正が有効",
+                    "TooltipDictMissing":  "辞書なし: 手動変換 (Alt+Alt) が有効。「マイ辞書」タブから辞書を読み込めます",
+                    "InstalledInWindowsTag":  "Windows"
                 }
 }

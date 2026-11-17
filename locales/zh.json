@@ -114,6 +114,14 @@
                     "LastDoubleCapFixFormat":  "已修正双大写：「{0}」→「{1}」",
                     "CheckIgnoreProfanity":  "不将俚语或粗俗词纠正为普通词汇",
                     "StatMin":  "分",
-                    "StatSec":  "秒"
+                    "StatSec":  "秒",
+                    "BtnAddLanguage":  "+ 添加语言 / 键盘布局...",
+                    "AddLanguageTitle":  "添加语言和键盘布局",
+                    "AddLanguageSearchHint":  "按名称、代码（DE、FR、PL）或 Windows KLID（例如 00000407）搜索：",
+                    "BadgeDictConnected":  "✓ 词典已连接",
+                    "BadgeDictManualOnly":  "Alt+Alt",
+                    "TooltipDictConnected":  "词典已加载（{0} 词）：自动切换和拼写纠错已启用",
+                    "TooltipDictMissing":  "无词典：支持手动转换 (Alt+Alt)；请在「我的词典」选项卡中导入词典",
+                    "InstalledInWindowsTag":  "Windows"
                 }
 }

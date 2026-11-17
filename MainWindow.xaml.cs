@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Globalization;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Windows;
@@ -20,14 +21,37 @@ namespace LanguageSwitcher
 {
     internal sealed class LanguageFilterOption
     {
-        public SupportedLanguage? Language { get; }
+        public string? Klid { get; }
         public string Label { get; }
 
-        public LanguageFilterOption(SupportedLanguage? language, string label)
+        public LanguageFilterOption(string? klid, string label)
         {
-            Language = language;
+            Klid = klid;
             Label = label;
         }
+    }
+
+    internal sealed class TargetLanguageRowItem
+    {
+        public string Klid { get; init; } = string.Empty;
+        public string ShortBadge { get; init; } = string.Empty;
+        public string DisplayName { get; init; } = string.Empty;
+        public bool IsTargetSelected { get; init; }
+        public string DictStatusText { get; init; } = string.Empty;
+        public string DictTooltip { get; init; } = string.Empty;
+        public Brush DictBadgeBackground { get; init; } = Brushes.Transparent;
+        public Brush DictBadgeForeground { get; init; } = Brushes.Gray;
+        public Visibility RemoveButtonVisibility { get; init; } = Visibility.Visible;
+    }
+
+    internal sealed class LanguagePickerItem
+    {
+        public string Klid { get; init; } = string.Empty;
+        public string ShortBadge { get; init; } = string.Empty;
+        public string DisplayName { get; init; } = string.Empty;
+        public string Subtitle { get; init; } = string.Empty;
+        public string SearchKeywords { get; init; } = string.Empty;
+        public Visibility InstalledBadgeVisibility { get; init; } = Visibility.Collapsed;
     }
 
     /// <summary>
@@ -139,12 +163,12 @@ namespace LanguageSwitcher
 
         public void UpdateLastConversionStatus(ConversionResult result)
         {
-            LanguageInfo src = LanguageCatalog.GetInfo(result.SourceLanguage);
-            LanguageInfo dst = LanguageCatalog.GetInfo(result.TargetLanguage);
+            KeyboardLayoutInfo src = UniversalLayoutService.Instance.GetLayoutInfo(result.SourceLanguage);
+            KeyboardLayoutInfo dst = UniversalLayoutService.Instance.GetLayoutInfo(result.TargetLanguage);
             LastActionText.Text = _localizationService.Format(
                 "LastActionFormat",
-                src.ShortCode,
-                dst.ShortCode,
+                src.ShortBadge,
+                dst.ShortBadge,
                 result.ConvertedText);
         }
 
@@ -155,8 +179,8 @@ namespace LanguageSwitcher
                 case AutoActionType.AutoLayoutSwitch:
                     LastActionText.Text = _localizationService.Format(
                         "LastAutoSwitchFormat",
-                        LanguageCatalog.GetInfo(record.OriginalLanguage).ShortCode,
-                        LanguageCatalog.GetInfo(record.TargetLanguage).ShortCode,
+                        UniversalLayoutService.Instance.GetLayoutInfo(record.OriginalLanguage).ShortBadge,
+                        UniversalLayoutService.Instance.GetLayoutInfo(record.TargetLanguage).ShortBadge,
                         record.ReplacedText);
                     break;
                 case AutoActionType.TypoCorrection:
@@ -195,6 +219,7 @@ namespace LanguageSwitcher
         public void RefreshBuiltInDictionaryCounter()
         {
             RefreshUserDictionaryList();
+            RefreshLanguageSelectorsUi();
         }
 
         public void RefreshExceptionsFromExternalChange()
@@ -266,17 +291,13 @@ namespace LanguageSwitcher
             _isInitializingUi = true;
             try
             {
+                _settings.Normalize();
+
                 InterfaceLanguageComboBox.ItemsSource = _localizationService.AvailableLocales;
                 InterfaceLanguageComboBox.SelectedValue = _localizationService.CurrentLanguageCode;
 
-                DefaultSourceComboBox.ItemsSource = LanguageCatalog.All;
-                DefaultSourceComboBox.SelectedValue = _settings.DefaultSourceLanguage;
                 UseDefaultSourceCheckBox.IsChecked = _settings.UseDefaultSourceLanguage;
                 DefaultSourceComboBox.IsEnabled = _settings.UseDefaultSourceLanguage;
-
-                TargetEnglishCheckBox.IsChecked = _settings.TargetLanguages.Contains(SupportedLanguage.English);
-                TargetRussianCheckBox.IsChecked = _settings.TargetLanguages.Contains(SupportedLanguage.Russian);
-                TargetUkrainianCheckBox.IsChecked = _settings.TargetLanguages.Contains(SupportedLanguage.Ukrainian);
 
                 AutoSwitchLayoutCheckBox.IsChecked = _settings.AutoSwitchLayout;
                 AutoCorrectTyposCheckBox.IsChecked = _settings.AutoCorrectTypos;
@@ -290,9 +311,87 @@ namespace LanguageSwitcher
                 BlockManualExcludedCheckBox.IsChecked = _settings.BlockManualTriggerInExcluded;
 
                 RunAtStartupCheckBox.IsChecked = _settings.RunAtStartup;
+            }
+            finally
+            {
+                _isInitializingUi = false;
+            }
 
-                DictAddLanguageComboBox.ItemsSource = LanguageCatalog.All;
-                DictAddLanguageComboBox.SelectedValue = SupportedLanguage.Russian;
+            RefreshLanguageSelectorsUi();
+        }
+
+        private List<KeyboardLayoutInfo> GetActiveUserLayoutInfos()
+        {
+            UniversalLayoutService service = UniversalLayoutService.Instance;
+            return _settings.AddedLanguages
+                .Select(klid => service.GetLayoutInfo(klid))
+                .GroupBy(info => info.Klid, StringComparer.OrdinalIgnoreCase)
+                .Select(g => g.First())
+                .ToList();
+        }
+
+        private void RefreshLanguageSelectorsUi()
+        {
+            bool prevInit = _isInitializingUi;
+            _isInitializingUi = true;
+            try
+            {
+                _settings.Normalize();
+                List<KeyboardLayoutInfo> addedInfos = GetActiveUserLayoutInfos();
+
+                DefaultSourceComboBox.ItemsSource = addedInfos;
+                DefaultSourceComboBox.SelectedValue = _settings.DefaultSourceLanguage;
+                DefaultSourceComboBox.IsEnabled = _settings.UseDefaultSourceLanguage;
+
+                var targetSet = new HashSet<string>(_settings.TargetLanguages, StringComparer.OrdinalIgnoreCase);
+                bool canRemove = addedInfos.Count > 2;
+                var dictConnectedBg = new SolidColorBrush(Color.FromRgb(0xE6, 0xF4, 0xEA));
+                var dictConnectedFg = new SolidColorBrush(Color.FromRgb(0x10, 0x7C, 0x10));
+                var dictMissingBg = new SolidColorBrush(Color.FromRgb(0xF3, 0xF4, 0xF6));
+                var dictMissingFg = new SolidColorBrush(Color.FromRgb(0x6B, 0x72, 0x80));
+
+                var rowItems = new List<TargetLanguageRowItem>(addedInfos.Count);
+                foreach (KeyboardLayoutInfo info in addedInfos)
+                {
+                    bool hasDict = _dictionaryService.HasDictionary(info.Klid);
+                    int wordCount = hasDict ? _dictionaryService.GetWordCountForLanguage(info.Klid) : 0;
+
+                    rowItems.Add(new TargetLanguageRowItem
+                    {
+                        Klid = info.Klid,
+                        ShortBadge = info.ShortBadge,
+                        DisplayName = info.DisplayName,
+                        IsTargetSelected = targetSet.Contains(info.Klid),
+                        DictStatusText = hasDict
+                            ? _localizationService.GetString("BadgeDictConnected")
+                            : _localizationService.GetString("BadgeDictManualOnly"),
+                        DictTooltip = hasDict
+                            ? _localizationService.Format("TooltipDictConnected", wordCount)
+                            : _localizationService.GetString("TooltipDictMissing"),
+                        DictBadgeBackground = hasDict ? dictConnectedBg : dictMissingBg,
+                        DictBadgeForeground = hasDict ? dictConnectedFg : dictMissingFg,
+                        RemoveButtonVisibility = canRemove ? Visibility.Visible : Visibility.Collapsed
+                    });
+                }
+
+                TargetLanguagesItemsControl.ItemsSource = rowItems;
+                TargetValidationText.Visibility = Visibility.Collapsed;
+
+                string? previousDictAdd = DictAddLanguageComboBox.SelectedValue as string;
+                DictAddLanguageComboBox.ItemsSource = addedInfos;
+                if (!string.IsNullOrEmpty(previousDictAdd)
+                    && addedInfos.Any(x => string.Equals(x.Klid, previousDictAdd, StringComparison.OrdinalIgnoreCase)))
+                {
+                    DictAddLanguageComboBox.SelectedValue = previousDictAdd;
+                }
+                else if (addedInfos.Any(x => string.Equals(x.Klid, UniversalLayoutService.RussianKlid, StringComparison.OrdinalIgnoreCase)))
+                {
+                    DictAddLanguageComboBox.SelectedValue = UniversalLayoutService.RussianKlid;
+                }
+                else if (addedInfos.Count > 0)
+                {
+                    DictAddLanguageComboBox.SelectedValue = addedInfos[0].Klid;
+                }
 
                 RebuildDictFilterOptions();
                 UpdateSourceHint();
@@ -300,21 +399,34 @@ namespace LanguageSwitcher
             }
             finally
             {
-                _isInitializingUi = false;
+                _isInitializingUi = prevInit;
             }
         }
 
         private void RebuildDictFilterOptions()
         {
-            SupportedLanguage? selected = DictFilterLanguageComboBox.SelectedValue as SupportedLanguage?;
+            string? selected = DictFilterLanguageComboBox.SelectedValue as string;
             var options = new List<LanguageFilterOption>
             {
                 new LanguageFilterOption(null, _localizationService.GetString("DictFilterAll"))
             };
 
-            foreach (LanguageInfo info in LanguageCatalog.All)
+            var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (KeyboardLayoutInfo info in GetActiveUserLayoutInfos())
             {
-                options.Add(new LanguageFilterOption(info.Language, info.DisplayName));
+                if (seen.Add(info.Klid))
+                {
+                    options.Add(new LanguageFilterOption(info.Klid, info.DisplayLabel));
+                }
+            }
+
+            foreach (string extraKlid in _dictionaryService.GetUserDictionaryLanguagesSnapshot())
+            {
+                if (seen.Add(extraKlid))
+                {
+                    KeyboardLayoutInfo extraInfo = UniversalLayoutService.Instance.GetLayoutInfo(extraKlid);
+                    options.Add(new LanguageFilterOption(extraInfo.Klid, extraInfo.DisplayLabel));
+                }
             }
 
             bool prevInit = _isInitializingUi;
@@ -380,9 +492,7 @@ namespace LanguageSwitcher
             Dispatcher.BeginInvoke(new Action(() =>
             {
                 ApplyLocalizedTexts();
-                RebuildDictFilterOptions();
-                UpdateSourceHint();
-                UpdateCyclePreview();
+                RefreshLanguageSelectorsUi();
                 RefreshStatisticsDisplay();
                 UpdateStatusVisuals();
                 RefreshAllLists();
@@ -524,8 +634,8 @@ namespace LanguageSwitcher
         {
             if (_settings.UseDefaultSourceLanguage)
             {
-                LanguageInfo info = LanguageCatalog.GetInfo(_settings.DefaultSourceLanguage);
-                SourceHintText.Text = _localizationService.Format("SourceHintDefaultFormat", info.DisplayName);
+                KeyboardLayoutInfo info = UniversalLayoutService.Instance.GetLayoutInfo(_settings.DefaultSourceLanguage);
+                SourceHintText.Text = _localizationService.Format("SourceHintDefaultFormat", info.DisplayLabel);
             }
             else
             {
@@ -536,9 +646,9 @@ namespace LanguageSwitcher
         private void UpdateCyclePreview()
         {
             var names = new List<string>();
-            foreach (SupportedLanguage lang in _settings.TargetLanguages)
+            foreach (string klid in _settings.TargetLanguages)
             {
-                names.Add(LanguageCatalog.GetInfo(lang).DisplayName);
+                names.Add(UniversalLayoutService.Instance.GetLayoutInfo(klid).DisplayLabel);
             }
 
             if (names.Count == 2)
@@ -590,45 +700,231 @@ namespace LanguageSwitcher
 
         private void DefaultSourceComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            if (_isInitializingUi || DefaultSourceComboBox.SelectedValue is not SupportedLanguage selectedLanguage)
+            if (_isInitializingUi || DefaultSourceComboBox.SelectedValue is not string selectedKlid)
             {
                 return;
             }
 
-            _settings.DefaultSourceLanguage = selectedLanguage;
+            _settings.DefaultSourceLanguage = selectedKlid;
             UpdateSourceHint();
             _settingsManager.Save(_settings);
         }
 
         private void TargetLanguageCheckBox_Click(object sender, RoutedEventArgs e)
         {
-            if (_isInitializingUi)
+            if (_isInitializingUi || sender is not CheckBox cb || cb.Tag is not string klid)
             {
                 return;
             }
 
-            var selected = new List<SupportedLanguage>();
-            if (TargetEnglishCheckBox.IsChecked == true) selected.Add(SupportedLanguage.English);
-            if (TargetRussianCheckBox.IsChecked == true) selected.Add(SupportedLanguage.Russian);
-            if (TargetUkrainianCheckBox.IsChecked == true) selected.Add(SupportedLanguage.Ukrainian);
-
-            if (selected.Count < 2)
+            bool isChecked = cb.IsChecked == true;
+            if (isChecked)
             {
-                if (sender is CheckBox cb)
+                if (!_settings.TargetLanguages.Contains(klid, StringComparer.OrdinalIgnoreCase))
+                {
+                    _settings.TargetLanguages.Add(klid);
+                }
+
+                TargetValidationText.Visibility = Visibility.Collapsed;
+            }
+            else
+            {
+                if (_settings.TargetLanguages.Count <= 2)
                 {
                     _isInitializingUi = true;
                     cb.IsChecked = true;
                     _isInitializingUi = false;
+                    TargetValidationText.Visibility = Visibility.Visible;
+                    return;
                 }
 
-                TargetValidationText.Visibility = Visibility.Visible;
+                _settings.TargetLanguages.RemoveAll(x => string.Equals(x, klid, StringComparison.OrdinalIgnoreCase));
+                TargetValidationText.Visibility = Visibility.Collapsed;
+            }
+
+            _settings.Normalize();
+            UpdateCyclePreview();
+            _settingsManager.Save(_settings);
+        }
+
+        private void RemoveLanguageButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (_isInitializingUi || sender is not Button btn || btn.Tag is not string klid)
+            {
                 return;
             }
 
-            TargetValidationText.Visibility = Visibility.Collapsed;
-            _settings.TargetLanguages = selected;
-            UpdateCyclePreview();
+            if (_settings.AddedLanguages.Count <= 2)
+            {
+                return;
+            }
+
+            _settings.AddedLanguages.RemoveAll(x => string.Equals(x, klid, StringComparison.OrdinalIgnoreCase));
+            _settings.TargetLanguages.RemoveAll(x => string.Equals(x, klid, StringComparison.OrdinalIgnoreCase));
+            _settings.Normalize();
             _settingsManager.Save(_settings);
+            RefreshLanguageSelectorsUi();
+        }
+
+        private void AddLanguageButton_Click(object sender, RoutedEventArgs e)
+        {
+            LanguageSearchTextBox.Clear();
+            RefreshLanguagePickerList();
+            AddLanguageOverlay.Visibility = Visibility.Visible;
+            LanguageSearchTextBox.Focus();
+        }
+
+        private void CloseAddLanguageOverlayButton_Click(object sender, RoutedEventArgs e)
+        {
+            AddLanguageOverlay.Visibility = Visibility.Collapsed;
+        }
+
+        private void AddLanguageOverlay_MouseDown(object sender, MouseButtonEventArgs e)
+        {
+            AddLanguageOverlay.Visibility = Visibility.Collapsed;
+        }
+
+        private void AddLanguageCard_MouseDown(object sender, MouseButtonEventArgs e)
+        {
+            e.Handled = true;
+        }
+
+        private void LanguageSearchTextBox_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            RefreshLanguagePickerList();
+        }
+
+        private void LanguageSearchTextBox_PreviewKeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key == Key.Escape)
+            {
+                e.Handled = true;
+                AddLanguageOverlay.Visibility = Visibility.Collapsed;
+                return;
+            }
+
+            if (e.Key == Key.Enter)
+            {
+                e.Handled = true;
+                if (AvailableLanguagesListBox.SelectedItem is LanguagePickerItem selected)
+                {
+                    AddLanguageFromPicker(selected.Klid);
+                }
+                else if (AvailableLanguagesListBox.Items.Count > 0
+                    && AvailableLanguagesListBox.Items[0] is LanguagePickerItem first)
+                {
+                    AddLanguageFromPicker(first.Klid);
+                }
+            }
+        }
+
+        private void AddLanguageFromPickerRowButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is Button btn && btn.Tag is string klid)
+            {
+                AddLanguageFromPicker(klid);
+            }
+        }
+
+        private void AvailableLanguagesListBox_MouseDoubleClick(object sender, MouseButtonEventArgs e)
+        {
+            if (AvailableLanguagesListBox.SelectedItem is LanguagePickerItem item)
+            {
+                AddLanguageFromPicker(item.Klid);
+            }
+        }
+
+        private void AddLanguageFromPicker(string klid)
+        {
+            string normalized = UniversalLayoutService.Instance.NormalizeKlid(klid);
+            if (!_settings.AddedLanguages.Contains(normalized, StringComparer.OrdinalIgnoreCase))
+            {
+                _settings.AddedLanguages.Add(normalized);
+            }
+
+            if (!_settings.TargetLanguages.Contains(normalized, StringComparer.OrdinalIgnoreCase))
+            {
+                _settings.TargetLanguages.Add(normalized);
+            }
+
+            _settings.Normalize();
+            _settingsManager.Save(_settings);
+            AddLanguageOverlay.Visibility = Visibility.Collapsed;
+            RefreshLanguageSelectorsUi();
+            DictAddLanguageComboBox.SelectedValue = normalized;
+        }
+
+        private void RefreshLanguagePickerList()
+        {
+            string query = LanguageSearchTextBox.Text.Trim();
+            var alreadyAdded = new HashSet<string>(_settings.AddedLanguages, StringComparer.OrdinalIgnoreCase);
+
+            List<KeyboardLayoutInfo> catalog = UniversalLayoutService.Instance.GetAllAvailableLayouts();
+            var items = new List<LanguagePickerItem>();
+
+            foreach (KeyboardLayoutInfo info in catalog)
+            {
+                if (alreadyAdded.Contains(info.Klid))
+                {
+                    continue;
+                }
+
+                string keywords = BuildLayoutSearchKeywords(info);
+                if (!string.IsNullOrEmpty(query)
+                    && !keywords.Contains(query, StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
+
+                items.Add(CreatePickerItem(info));
+            }
+
+            // Если пользователь ввёл произвольный 8-значный HEX KLID, отсутствующий в текущем списке — подхватываем его напрямую
+            if (query.Length == 8
+                && uint.TryParse(query, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out _))
+            {
+                string customKlid = query.ToUpperInvariant();
+                if (!alreadyAdded.Contains(customKlid)
+                    && !items.Any(i => string.Equals(i.Klid, customKlid, StringComparison.OrdinalIgnoreCase)))
+                {
+                    KeyboardLayoutInfo customInfo = UniversalLayoutService.Instance.GetLayoutInfo(customKlid);
+                    items.Insert(0, CreatePickerItem(customInfo));
+                }
+            }
+
+            AvailableLanguagesListBox.ItemsSource = items;
+            if (items.Count > 0)
+            {
+                AvailableLanguagesListBox.SelectedIndex = 0;
+            }
+        }
+
+        private static string BuildLayoutSearchKeywords(KeyboardLayoutInfo info)
+        {
+            string englishName = string.Empty;
+            try
+            {
+                englishName = CultureInfo.GetCultureInfo(info.LanguageId).EnglishName;
+            }
+            catch
+            {
+                // Нестандартный LCID
+            }
+
+            return $"{info.Klid} {info.ShortBadge} {info.CultureCode} {info.DisplayName} {info.NativeName} {englishName}";
+        }
+
+        private static LanguagePickerItem CreatePickerItem(KeyboardLayoutInfo info)
+        {
+            return new LanguagePickerItem
+            {
+                Klid = info.Klid,
+                ShortBadge = info.ShortBadge,
+                DisplayName = info.DisplayName,
+                Subtitle = $"{info.CultureCode} • KLID {info.Klid}",
+                SearchKeywords = BuildLayoutSearchKeywords(info),
+                InstalledBadgeVisibility = info.IsInstalledInWindows ? Visibility.Visible : Visibility.Collapsed
+            };
         }
 
         private void AutomationOptionCheckBox_Changed(object sender, RoutedEventArgs e)
@@ -906,14 +1202,18 @@ namespace LanguageSwitcher
         private void RefreshUserDictionaryList()
         {
             string query = DictSearchTextBox.Text.Trim();
-            SupportedLanguage? filterLang = DictFilterLanguageComboBox.SelectedValue as SupportedLanguage?;
+            string? filterKlid = DictFilterLanguageComboBox.SelectedValue as string;
 
             List<UserDictionaryEntry> all = _dictionaryService.GetUserDictionarySnapshot();
             IEnumerable<UserDictionaryEntry> filtered = all;
 
-            if (filterLang.HasValue)
+            if (!string.IsNullOrWhiteSpace(filterKlid))
             {
-                filtered = filtered.Where(entry => entry.Language == filterLang.Value);
+                string normalizedFilter = UniversalLayoutService.Instance.NormalizeKlid(filterKlid);
+                filtered = filtered.Where(entry => string.Equals(
+                    UniversalLayoutService.Instance.NormalizeKlid(entry.Language),
+                    normalizedFilter,
+                    StringComparison.OrdinalIgnoreCase));
             }
 
             if (!string.IsNullOrEmpty(query))
@@ -930,10 +1230,9 @@ namespace LanguageSwitcher
 
         private void AddUserWordsFromInput()
         {
-            if (DictAddLanguageComboBox.SelectedValue is not SupportedLanguage lang)
-            {
-                lang = SupportedLanguage.Russian;
-            }
+            string langKlid = DictAddLanguageComboBox.SelectedValue as string
+                ?? _settings.AddedLanguages.FirstOrDefault()
+                ?? UniversalLayoutService.RussianKlid;
 
             List<string> words = DictionaryService.ParseBulkWordInput(DictWordInputTextBox.Text);
             if (words.Count == 0)
@@ -941,9 +1240,10 @@ namespace LanguageSwitcher
                 return;
             }
 
-            _dictionaryService.AddUserWords(words, lang);
+            _dictionaryService.AddUserWords(words, langKlid);
             DictWordInputTextBox.Clear();
             RefreshUserDictionaryList();
+            RefreshLanguageSelectorsUi();
         }
 
         private void AddDictWordButton_Click(object sender, RoutedEventArgs e)
@@ -962,10 +1262,9 @@ namespace LanguageSwitcher
 
         private async void ImportDictionaryButton_Click(object sender, RoutedEventArgs e)
         {
-            if (DictAddLanguageComboBox.SelectedValue is not SupportedLanguage targetLang)
-            {
-                targetLang = SupportedLanguage.Russian;
-            }
+            string targetLang = DictAddLanguageComboBox.SelectedValue as string
+                ?? _settings.AddedLanguages.FirstOrDefault()
+                ?? UniversalLayoutService.RussianKlid;
 
             var dialog = new OpenFileDialog
             {
@@ -992,6 +1291,7 @@ namespace LanguageSwitcher
                     progress);
 
                 RefreshUserDictionaryList();
+                RefreshLanguageSelectorsUi();
                 string summary = _localizationService.Format(
                     "DictImportSuccessFormat",
                     result.AddedCount,
@@ -1040,6 +1340,7 @@ namespace LanguageSwitcher
             {
                 _dictionaryService.RemoveUserWord(entry.Word, entry.Language);
                 RefreshUserDictionaryList();
+                RefreshLanguageSelectorsUi();
             }
         }
 
@@ -1049,6 +1350,7 @@ namespace LanguageSwitcher
             {
                 _dictionaryService.RemoveUserWord(entry.Word, entry.Language);
                 RefreshUserDictionaryList();
+                RefreshLanguageSelectorsUi();
             }
         }
 
@@ -1068,6 +1370,7 @@ namespace LanguageSwitcher
             {
                 _dictionaryService.ClearUserDictionary();
                 RefreshUserDictionaryList();
+                RefreshLanguageSelectorsUi();
             }
         }
 

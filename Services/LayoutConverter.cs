@@ -1,26 +1,27 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 using LanguageSwitcher.Models;
 
 namespace LanguageSwitcher.Services
 {
     /// <summary>
-    /// Результат конвертации текста между раскладками.
+    /// Результат конвертации текста между любыми мировыми раскладками клавиатуры.
     /// </summary>
     public sealed class ConversionResult
     {
         public bool Success { get; }
         public string ConvertedText { get; }
-        public SupportedLanguage SourceLanguage { get; }
-        public SupportedLanguage TargetLanguage { get; }
+        public string SourceLanguage { get; }
+        public string TargetLanguage { get; }
         public bool IsCycleContinuation { get; }
 
         public ConversionResult(
             bool success,
             string convertedText,
-            SupportedLanguage sourceLanguage,
-            SupportedLanguage targetLanguage,
+            string sourceLanguage,
+            string targetLanguage,
             bool isCycleContinuation)
         {
             Success = success;
@@ -33,93 +34,32 @@ namespace LanguageSwitcher.Services
 
     /// <summary>
     /// Отвечает за определение исходной раскладки, посимвольную конвертацию текста
-    /// с сохранением регистра и циклическое переключение между выбранными языками.
+    /// через динамические профили ToUnicodeEx и циклическое переключение между любыми выбранными раскладками мира.
     /// </summary>
     public sealed class LayoutConverter
     {
-        private const int KeysPerState = 47;
-        private const int TotalTableSize = KeysPerState * 2; // 47 обычных + 47 с Shift
-
-        // 47 физических клавиш (без Shift, затем с Shift) для раскладки English (US)
-        private static readonly char[] EnglishChars =
-        {
-            // Без Shift (0..46)
-            '`', '1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '-', '=',
-            'q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p', '[', ']', '\\',
-            'a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l', ';', '\'',
-            'z', 'x', 'c', 'v', 'b', 'n', 'm', ',', '.', '/',
-
-            // С Shift (47..93)
-            '~', '!', '@', '#', '$', '%', '^', '&', '*', '(', ')', '_', '+',
-            'Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P', '{', '}', '|',
-            'A', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L', ':', '"',
-            'Z', 'X', 'C', 'V', 'B', 'N', 'M', '<', '>', '?'
-        };
-
-        // 47 физических клавиш (без Shift, затем с Shift) для русской раскладки (ЙЦУКЕН)
-        private static readonly char[] RussianChars =
-        {
-            // Без Shift (0..46)
-            'ё', '1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '-', '=',
-            'й', 'ц', 'у', 'к', 'е', 'н', 'г', 'ш', 'щ', 'з', 'х', 'ъ', '\\',
-            'ф', 'ы', 'в', 'а', 'п', 'р', 'о', 'л', 'д', 'ж', 'э',
-            'я', 'ч', 'с', 'м', 'и', 'т', 'ь', 'б', 'ю', '.',
-
-            // С Shift (47..93)
-            'Ё', '!', '"', '№', ';', '%', ':', '?', '*', '(', ')', '_', '+',
-            'Й', 'Ц', 'У', 'К', 'Е', 'Н', 'Г', 'Ш', 'Щ', 'З', 'Х', 'Ъ', '/',
-            'Ф', 'Ы', 'В', 'А', 'П', 'Р', 'О', 'Л', 'Д', 'Ж', 'Э',
-            'Я', 'Ч', 'С', 'М', 'И', 'Т', 'Ь', 'Б', 'Ю', ','
-        };
-
-        // 47 физических клавиш (без Shift, затем с Shift) для украинской раскладки (Українська розширена)
-        private static readonly char[] UkrainianChars =
-        {
-            // Без Shift (0..46)
-            '\'', '1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '-', '=',
-            'й', 'ц', 'у', 'к', 'е', 'н', 'г', 'ш', 'щ', 'з', 'х', 'ї', 'ґ',
-            'ф', 'і', 'в', 'а', 'п', 'р', 'о', 'л', 'д', 'ж', 'є',
-            'я', 'ч', 'с', 'м', 'и', 'т', 'ь', 'б', 'ю', '.',
-
-            // С Shift (47..93)
-            '₴', '!', '"', '№', ';', '%', ':', '?', '*', '(', ')', '_', '+',
-            'Й', 'Ц', 'У', 'К', 'Е', 'Н', 'Г', 'Ш', 'Щ', 'З', 'Х', 'Ї', 'Ґ',
-            'Ф', 'І', 'В', 'А', 'П', 'Р', 'О', 'Л', 'Д', 'Ж', 'Є',
-            'Я', 'Ч', 'С', 'М', 'И', 'Т', 'Ь', 'Б', 'Ю', ','
-        };
-
-        private static readonly Dictionary<SupportedLanguage, char[]> CharByIndex =
-            new Dictionary<SupportedLanguage, char[]>
-            {
-                [SupportedLanguage.English] = EnglishChars,
-                [SupportedLanguage.Russian] = RussianChars,
-                [SupportedLanguage.Ukrainian] = UkrainianChars
-            };
-
-        private static readonly Dictionary<SupportedLanguage, Dictionary<char, int>> IndexByChar =
-            BuildReverseMaps();
-
-        // Наборы уникальных символов для точного определения языка раскладки
-        private static readonly HashSet<char> EnglishExclusiveChars = new HashSet<char>(
-            "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ`~@#$^&[]{}|<>");
-
-        private static readonly HashSet<char> RussianExclusiveChars = new HashSet<char>(
-            "ыЫъЪэЭёЁ");
-
-        private static readonly HashSet<char> UkrainianExclusiveChars = new HashSet<char>(
-            "іІїЇєЄґҐ₴ʼ");
-
-        // Нейтральные символы, одинаковые на всех трёх раскладках (цифры, общие знаки, пробелы)
         private static readonly HashSet<char> NeutralChars = new HashSet<char>(
             "1234567890-_=+%*()");
 
-        // Состояние циклической конвертации (для 3 и более языков)
+        private readonly UniversalLayoutService _layoutService;
+
+        // Состояние циклической конвертации (для 2, 3 и более языков)
         private readonly object _cycleLock = new object();
         private string _originalText = string.Empty;
         private string _lastConvertedText = string.Empty;
-        private SupportedLanguage _sourceLanguage;
-        private List<SupportedLanguage> _cycleOrder = new List<SupportedLanguage>();
+        private string _sourceLanguage = UniversalLayoutService.EnglishUsKlid;
+        private List<string> _cycleOrder = new List<string>();
         private int _currentCycleIndex;
+
+        public LayoutConverter()
+            : this(UniversalLayoutService.Instance)
+        {
+        }
+
+        public LayoutConverter(UniversalLayoutService layoutService)
+        {
+            _layoutService = layoutService ?? throw new ArgumentNullException(nameof(layoutService));
+        }
 
         public bool IsCycleActive
         {
@@ -152,19 +92,24 @@ namespace LanguageSwitcher.Services
             {
                 _originalText = string.Empty;
                 _lastConvertedText = string.Empty;
-                _cycleOrder = new List<SupportedLanguage>();
+                _cycleOrder = new List<string>();
                 _currentCycleIndex = 0;
             }
         }
 
         /// <summary>
-        /// Выполняет конвертацию текста с учётом состояния цикла (2 или 3+ целевых языков).
+        /// Выполняет конвертацию текста с учётом состояния цикла (2 или 3+ целевых раскладок мира).
         /// </summary>
-        public ConversionResult ConvertWithCycle(string text, AppSettings settings, bool isContinuation)
+        public ConversionResult ConvertWithCycle(
+            string text,
+            AppSettings settings,
+            bool isContinuation,
+            string? activeWindowLanguage = null)
         {
             if (string.IsNullOrEmpty(text))
             {
-                return new ConversionResult(false, text ?? string.Empty, SupportedLanguage.English, SupportedLanguage.English, false);
+                string fallback = _layoutService.NormalizeKlid(settings?.DefaultSourceLanguage);
+                return new ConversionResult(false, text ?? string.Empty, fallback, fallback, false);
             }
 
             if (settings == null)
@@ -184,7 +129,7 @@ namespace LanguageSwitcher.Services
                 if (!canContinue)
                 {
                     _originalText = text;
-                    _sourceLanguage = DetectSourceLanguage(text, settings);
+                    _sourceLanguage = DetectSourceLanguage(text, settings, activeWindowLanguage);
                     _cycleOrder = BuildCycleOrder(_sourceLanguage, settings.TargetLanguages);
 
                     if (_cycleOrder.Count < 2)
@@ -194,7 +139,7 @@ namespace LanguageSwitcher.Services
                     }
 
                     _currentCycleIndex = 1;
-                    SupportedLanguage targetLang = _cycleOrder[_currentCycleIndex];
+                    string targetLang = _cycleOrder[_currentCycleIndex];
                     string converted = ConvertText(_originalText, _sourceLanguage, targetLang);
                     _lastConvertedText = converted;
 
@@ -203,7 +148,7 @@ namespace LanguageSwitcher.Services
                 else
                 {
                     _currentCycleIndex = (_currentCycleIndex + 1) % _cycleOrder.Count;
-                    SupportedLanguage targetLang = _cycleOrder[_currentCycleIndex];
+                    string targetLang = _cycleOrder[_currentCycleIndex];
                     string converted = _currentCycleIndex == 0
                         ? _originalText
                         : ConvertText(_originalText, _sourceLanguage, targetLang);
@@ -215,56 +160,135 @@ namespace LanguageSwitcher.Services
         }
 
         /// <summary>
-        /// Определяет исходную раскладку введённого текста с учётом опции «Использовать язык по умолчанию».
+        /// Определяет исходную раскладку введённого текста среди активных раскладок пользователя.
         /// </summary>
-        public SupportedLanguage DetectSourceLanguage(string text, AppSettings settings)
+        public string DetectSourceLanguage(string text, AppSettings settings, string? activeWindowLanguage = null)
         {
+            if (settings == null)
+            {
+                throw new ArgumentNullException(nameof(settings));
+            }
+
+            settings.Normalize();
+
             if (string.IsNullOrWhiteSpace(text))
             {
                 return settings.DefaultSourceLanguage;
             }
 
-            // 1. Если включён исходный язык по умолчанию, сначала проверяем совместимость текста с ним.
-            if (settings.UseDefaultSourceLanguage && IsTextCompatibleWithLanguage(text, settings.DefaultSourceLanguage))
+            // Собираем список раскладок-кандидатов для анализа
+            var candidates = new List<string>();
+            void AddCandidate(string? klid)
             {
-                return settings.DefaultSourceLanguage;
+                if (string.IsNullOrWhiteSpace(klid))
+                {
+                    return;
+                }
+
+                string normalized = _layoutService.NormalizeKlid(klid);
+                if (!candidates.Contains(normalized, StringComparer.OrdinalIgnoreCase))
+                {
+                    candidates.Add(normalized);
+                }
             }
 
-            // 2. Автоопределение исходной раскладки по символам
-            int enScore = ScoreLanguage(text, SupportedLanguage.English);
-            int ruScore = ScoreLanguage(text, SupportedLanguage.Russian);
-            int ukScore = ScoreLanguage(text, SupportedLanguage.Ukrainian);
+            foreach (string target in settings.TargetLanguages)
+            {
+                AddCandidate(target);
+            }
 
-            int maxScore = Math.Max(enScore, Math.Max(ruScore, ukScore));
+            AddCandidate(settings.DefaultSourceLanguage);
+            AddCandidate(activeWindowLanguage);
 
-            var tied = new List<SupportedLanguage>();
-            if (enScore == maxScore) tied.Add(SupportedLanguage.English);
-            if (ruScore == maxScore) tied.Add(SupportedLanguage.Russian);
-            if (ukScore == maxScore) tied.Add(SupportedLanguage.Ukrainian);
+            var profiles = new Dictionary<string, DynamicLayoutProfile>(StringComparer.OrdinalIgnoreCase);
+            foreach (string klid in candidates)
+            {
+                profiles[klid] = _layoutService.GetProfile(klid);
+            }
 
+            // 1. Если включён исходный язык по умолчанию, сначала проверяем полную совместимость текста с ним
+            if (settings.UseDefaultSourceLanguage
+                && profiles.TryGetValue(settings.DefaultSourceLanguage, out DynamicLayoutProfile? defaultProfile)
+                && IsTextCompatibleWithProfile(text, defaultProfile))
+            {
+                return defaultProfile.Klid;
+            }
+
+            // 2. Взвешенная оценка совместимости текста с каждой из раскладок-кандидатов
+            var scores = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+            int maxScore = int.MinValue;
+
+            bool hasCyrillic = false;
+            bool hasRussianExclusive = false;
+            foreach (char ch in text)
+            {
+                if (ch >= '\u0400' && ch <= '\u04FF')
+                {
+                    hasCyrillic = true;
+                }
+
+                if (ch == 'ы' || ch == 'Ы' || ch == 'ъ' || ch == 'Ъ' || ch == 'э' || ch == 'Э' || ch == 'ё' || ch == 'Ё')
+                {
+                    hasRussianExclusive = true;
+                }
+            }
+
+            foreach (string klid in candidates)
+            {
+                DynamicLayoutProfile profile = profiles[klid];
+                int score = ScoreProfile(text, profile, profiles.Values, hasCyrillic, hasRussianExclusive);
+                scores[klid] = score;
+                if (score > maxScore)
+                {
+                    maxScore = score;
+                }
+            }
+
+            List<string> tied = candidates.Where(k => scores[k] == maxScore).ToList();
             if (tied.Count == 1)
             {
                 return tied[0];
             }
 
-            // При ничьей (например, слово "привет" состоит из букв, общих для RU и UK)
-            // отдаём приоритет языку по умолчанию (если он среди кандидатов и в целевых) или первому целевому языку.
-            if (settings.UseDefaultSourceLanguage && tied.Contains(settings.DefaultSourceLanguage))
+            // При ничьей (например, слово "привет" совместимо с RU и UA, или "ywei" совместимо с EN и DE)
+            if (settings.UseDefaultSourceLanguage && tied.Contains(settings.DefaultSourceLanguage, StringComparer.OrdinalIgnoreCase))
             {
                 return settings.DefaultSourceLanguage;
             }
 
-            foreach (SupportedLanguage target in settings.TargetLanguages)
+            if (!string.IsNullOrWhiteSpace(activeWindowLanguage))
             {
-                if (tied.Contains(target) && target != SupportedLanguage.Ukrainian)
+                string activeNorm = _layoutService.NormalizeKlid(activeWindowLanguage);
+                if (tied.Contains(activeNorm, StringComparer.OrdinalIgnoreCase))
                 {
-                    return target;
+                    return activeNorm;
                 }
             }
 
-            foreach (SupportedLanguage target in settings.TargetLanguages)
+            // Для классической кириллической ничьей (RU vs UK на слове без і/ї/є/ґ и ы/ъ/э/ё)
+            // отдаём предпочтение русской раскладке, если она есть в TargetLanguages и ничьей
+            bool hasRuInTied = tied.Contains(UniversalLayoutService.RussianKlid, StringComparer.OrdinalIgnoreCase);
+            bool hasUkInTied = tied.Any(k => string.Equals(profiles[k].Info.IsoLanguageCode, "uk", StringComparison.OrdinalIgnoreCase));
+
+            foreach (string target in settings.TargetLanguages)
             {
-                if (tied.Contains(target))
+                if (!tied.Contains(target, StringComparer.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
+
+                if (hasRuInTied && hasUkInTied
+                    && string.Equals(profiles[target].Info.IsoLanguageCode, "uk", StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
+
+                return target;
+            }
+
+            foreach (string target in settings.TargetLanguages)
+            {
+                if (tied.Contains(target, StringComparer.OrdinalIgnoreCase))
                 {
                     return target;
                 }
@@ -274,25 +298,42 @@ namespace LanguageSwitcher.Services
         }
 
         /// <summary>
-        /// Посимвольно конвертирует строку из sourceLanguage в targetLanguage с полным сохранением регистра.
+        /// Посимвольно конвертирует строку из sourceLanguage в targetLanguage с полным сохранением регистра
+        /// и сдвигом по физическим клавишам (включая QWERTZ, AZERTY и AltGr-символы).
         /// </summary>
-        public string ConvertText(string text, SupportedLanguage sourceLanguage, SupportedLanguage targetLanguage)
+        public string ConvertText(string text, string sourceLanguage, string targetLanguage)
         {
-            if (string.IsNullOrEmpty(text) || sourceLanguage == targetLanguage)
+            if (string.IsNullOrEmpty(text))
             {
                 return text;
             }
 
-            Dictionary<char, int> sourceMap = IndexByChar[sourceLanguage];
-            char[] targetTable = CharByIndex[targetLanguage];
+            string srcKlid = _layoutService.NormalizeKlid(sourceLanguage);
+            string dstKlid = _layoutService.NormalizeKlid(targetLanguage);
+
+            if (string.Equals(srcKlid, dstKlid, StringComparison.OrdinalIgnoreCase))
+            {
+                return text;
+            }
+
+            DynamicLayoutProfile srcProfile = _layoutService.GetProfile(srcKlid);
+            DynamicLayoutProfile dstProfile = _layoutService.GetProfile(dstKlid);
+
+            const int basicTableSize = DynamicLayoutProfile.KeysPerModifierState * 2; // Normal + Shift
 
             var sb = new StringBuilder(text.Length);
             for (int i = 0; i < text.Length; i++)
             {
                 char ch = text[i];
-                if (sourceMap.TryGetValue(ch, out int keyIndex))
+                if (srcProfile.IndexByChar.TryGetValue(ch, out int slot))
                 {
-                    sb.Append(targetTable[keyIndex]);
+                    char mapped = dstProfile.CharBySlot[slot];
+                    if (mapped == '\0' && slot >= basicTableSize)
+                    {
+                        mapped = dstProfile.CharBySlot[slot % basicTableSize];
+                    }
+
+                    sb.Append(mapped != '\0' ? mapped : ch);
                 }
                 else
                 {
@@ -302,11 +343,11 @@ namespace LanguageSwitcher.Services
 
             string result = sb.ToString();
 
-            // Особый случай при 3-язычном цикле (ghbdtn -> привет -> привіт -> ghbdtn):
-            // по физической карте клавиш EN->UK и RU->UK слово "привет" совпадает с русским написанием,
-            // поэтому при переводе в украинский заменяем его на корректное "привіт" с сохранением регистра.
-            if (targetLanguage == SupportedLanguage.Ukrainian
-                && (sourceLanguage == SupportedLanguage.English || sourceLanguage == SupportedLanguage.Russian)
+            // При 3-язычном переборе (ghbdtn -> привет -> привіт):
+            // по физической карте слово "привет" совпадает с русским написанием, поэтому для украинской цели ставим "привіт".
+            if (string.Equals(dstProfile.Info.IsoLanguageCode, "uk", StringComparison.OrdinalIgnoreCase)
+                && (string.Equals(srcProfile.Info.IsoLanguageCode, "en", StringComparison.OrdinalIgnoreCase)
+                    || string.Equals(srcProfile.Info.IsoLanguageCode, "ru", StringComparison.OrdinalIgnoreCase))
                 && string.Equals(result, "привет", StringComparison.OrdinalIgnoreCase))
             {
                 result = ApplyUkrainianGreetingCase(result);
@@ -327,16 +368,16 @@ namespace LanguageSwitcher.Services
             return new string(chars);
         }
 
-        private static List<SupportedLanguage> BuildCycleOrder(
-            SupportedLanguage sourceLanguage,
-            IReadOnlyList<SupportedLanguage> targetLanguages)
+        private List<string> BuildCycleOrder(
+            string sourceLanguage,
+            IReadOnlyList<string> targetLanguages)
         {
-            var order = new List<SupportedLanguage>();
+            var order = new List<string>();
             int sourcePos = -1;
 
             for (int i = 0; i < targetLanguages.Count; i++)
             {
-                if (targetLanguages[i] == sourceLanguage)
+                if (string.Equals(targetLanguages[i], sourceLanguage, StringComparison.OrdinalIgnoreCase))
                 {
                     sourcePos = i;
                     break;
@@ -345,7 +386,6 @@ namespace LanguageSwitcher.Services
 
             if (sourcePos >= 0)
             {
-                // Начинаем цикл с исходного языка, сохраняя порядок отмеченных целевых языков
                 for (int offset = 0; offset < targetLanguages.Count; offset++)
                 {
                     int idx = (sourcePos + offset) % targetLanguages.Count;
@@ -354,11 +394,10 @@ namespace LanguageSwitcher.Services
             }
             else
             {
-                // Исходный язык не отмечен среди целевых: начинаем с исходного, затем все целевые
                 order.Add(sourceLanguage);
                 for (int i = 0; i < targetLanguages.Count; i++)
                 {
-                    if (!order.Contains(targetLanguages[i]))
+                    if (!order.Contains(targetLanguages[i], StringComparer.OrdinalIgnoreCase))
                     {
                         order.Add(targetLanguages[i]);
                     }
@@ -368,9 +407,8 @@ namespace LanguageSwitcher.Services
             return order;
         }
 
-        private static bool IsTextCompatibleWithLanguage(string text, SupportedLanguage language)
+        private static bool IsTextCompatibleWithProfile(string text, DynamicLayoutProfile profile)
         {
-            Dictionary<char, int> map = IndexByChar[language];
             bool hasDistinctiveOrMappable = false;
 
             foreach (char ch in text)
@@ -380,24 +418,7 @@ namespace LanguageSwitcher.Services
                     continue;
                 }
 
-                // Если в тексте встретился символ, которого нет в таблице выбранного языка,
-                // или символ, принадлежащий исключительно другому алфавиту — язык по умолчанию не подходит.
-                if (!map.ContainsKey(ch))
-                {
-                    return false;
-                }
-
-                if (language != SupportedLanguage.English && EnglishExclusiveChars.Contains(ch))
-                {
-                    return false;
-                }
-
-                if (language != SupportedLanguage.Russian && RussianExclusiveChars.Contains(ch))
-                {
-                    return false;
-                }
-
-                if (language != SupportedLanguage.Ukrainian && UkrainianExclusiveChars.Contains(ch))
+                if (!profile.IndexByChar.ContainsKey(ch))
                 {
                     return false;
                 }
@@ -411,25 +432,15 @@ namespace LanguageSwitcher.Services
             return hasDistinctiveOrMappable;
         }
 
-        private static int ScoreLanguage(string text, SupportedLanguage language)
+        private static int ScoreProfile(
+            string text,
+            DynamicLayoutProfile profile,
+            IEnumerable<DynamicLayoutProfile> allCandidates,
+            bool hasCyrillic,
+            bool hasRussianExclusive)
         {
-            Dictionary<char, int> map = IndexByChar[language];
             int score = 0;
-            bool hasCyrillic = false;
-            bool hasRussianExclusive = false;
-
-            foreach (char ch in text)
-            {
-                if (ch >= '\u0400' && ch <= '\u04FF')
-                {
-                    hasCyrillic = true;
-                }
-
-                if (RussianExclusiveChars.Contains(ch))
-                {
-                    hasRussianExclusive = true;
-                }
-            }
+            bool isUkrainian = string.Equals(profile.Info.IsoLanguageCode, "uk", StringComparison.OrdinalIgnoreCase);
 
             foreach (char ch in text)
             {
@@ -438,72 +449,53 @@ namespace LanguageSwitcher.Services
                     continue;
                 }
 
-                if (map.ContainsKey(ch))
+                if (profile.IndexByChar.ContainsKey(ch))
                 {
-                    score += 1;
+                    score += 2;
+
+                    int missingElsewhere = 0;
+                    foreach (DynamicLayoutProfile other in allCandidates)
+                    {
+                        if (!string.Equals(other.Klid, profile.Klid, StringComparison.OrdinalIgnoreCase)
+                            && !other.IndexByChar.ContainsKey(ch))
+                        {
+                            missingElsewhere++;
+                        }
+                    }
+
+                    if (missingElsewhere > 0)
+                    {
+                        // Бонус за символ, отсутствующий в других выбранных раскладках (например ö/ä/ü/ß, é/à/ç, ы/ъ/э, і/ї/є)
+                        score += 10 + (missingElsewhere * 2);
+                    }
+
+                    if (isUkrainian && (ch == '\'' || ch == '’' || ch == 'ʼ') && hasCyrillic && !hasRussianExclusive)
+                    {
+                        score += 6;
+                    }
                 }
-
-                switch (language)
+                else
                 {
-                    case SupportedLanguage.English:
-                        if (EnglishExclusiveChars.Contains(ch))
+                    // Если символ отсутствует на этой раскладке, но присутствует на другой — сильный штраф
+                    bool existsElsewhere = false;
+                    foreach (DynamicLayoutProfile other in allCandidates)
+                    {
+                        if (!string.Equals(other.Klid, profile.Klid, StringComparison.OrdinalIgnoreCase)
+                            && other.IndexByChar.ContainsKey(ch))
                         {
-                            score += 10;
+                            existsElsewhere = true;
+                            break;
                         }
-                        break;
+                    }
 
-                    case SupportedLanguage.Russian:
-                        if (RussianExclusiveChars.Contains(ch))
-                        {
-                            score += 10;
-                        }
-                        break;
-
-                    case SupportedLanguage.Ukrainian:
-                        if (UkrainianExclusiveChars.Contains(ch))
-                        {
-                            score += 10;
-                        }
-                        else if ((ch == '\'' || ch == '’') && hasCyrillic && !hasRussianExclusive)
-                        {
-                            // Апостроф внутри кириллического слова без русских букв ы/ъ/э/ё характерен для украинского
-                            score += 5;
-                        }
-                        break;
+                    if (existsElsewhere)
+                    {
+                        score -= 20;
+                    }
                 }
             }
 
             return score;
-        }
-
-        private static Dictionary<SupportedLanguage, Dictionary<char, int>> BuildReverseMaps()
-        {
-            var result = new Dictionary<SupportedLanguage, Dictionary<char, int>>();
-
-            foreach (KeyValuePair<SupportedLanguage, char[]> pair in CharByIndex)
-            {
-                if (pair.Value.Length != TotalTableSize)
-                {
-                    throw new InvalidOperationException($"Таблица раскладки {pair.Key} должна содержать {TotalTableSize} символов.");
-                }
-
-                var reverse = new Dictionary<char, int>(TotalTableSize);
-                for (int i = 0; i < pair.Value.Length; i++)
-                {
-                    reverse[pair.Value[i]] = i;
-                }
-
-                // Поддержка типографских апострофов для украинской раскладки (клавиша ` / ё)
-                if (pair.Key == SupportedLanguage.Ukrainian)
-                {
-                    reverse['’'] = 0;
-                    reverse['ʼ'] = 0;
-                }
-
-                result[pair.Key] = reverse;
-            }
-
-            return result;
         }
     }
 }

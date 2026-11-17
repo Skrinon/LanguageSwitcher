@@ -114,6 +114,14 @@
                     "LastDoubleCapFixFormat":  "تم إصلاح الحرف الكبير: «{0}» → «{1}»",
                     "CheckIgnoreProfanity":  "عدم تصحيح الألفاظ النابية والعامية إلى كلمات عادية",
                     "StatMin":  "د",
-                    "StatSec":  "ث"
+                    "StatSec":  "ث",
+                    "BtnAddLanguage":  "+ إضافة لغة / تخطيط...",
+                    "AddLanguageTitle":  "إضافة لغة وتخطيط لوحة المفاتيح",
+                    "AddLanguageSearchHint":  "ابحث بالاسم أو الرمز (DE, FR, PL) أو معرف Windows KLID (مثل 00000401):",
+                    "BadgeDictConnected":  "✓ القاموس متصل",
+                    "BadgeDictManualOnly":  "Alt+Alt",
+                    "TooltipDictConnected":  "القاموس محمّل ({0} كلمة): التبديل التلقائي وتصحيح الأخطاء نشطان",
+                    "TooltipDictMissing":  "بدون قاموس: التحويل اليدوي (Alt+Alt) يعمل؛ حمّل قاموساً من تبويب «قاموسي»",
+                    "InstalledInWindowsTag":  "Windows"
                 }
 }

@@ -114,6 +114,14 @@
                     "LastDoubleCapFixFormat":  "Hoofdletter hersteld: «{0}» → «{1}»",
                     "CheckIgnoreProfanity":  "Scheldwoorden en straattaal niet corrigeren",
                     "StatMin":  "min",
-                    "StatSec":  "sec"
+                    "StatSec":  "sec",
+                    "BtnAddLanguage":  "+ Taal / indeling toevoegen...",
+                    "AddLanguageTitle":  "Taal en toetsenbordindeling toevoegen",
+                    "AddLanguageSearchHint":  "Zoek op naam, code (DE, FR, PL) of Windows KLID (bijv. 00000413):",
+                    "BadgeDictConnected":  "✓ Woordenboek",
+                    "BadgeDictManualOnly":  "Alt+Alt",
+                    "TooltipDictConnected":  "Woordenboek geladen ({0} woorden): automatisch wisselen en correctie actief",
+                    "TooltipDictMissing":  "Geen woordenboek: handmatige conversie (Alt+Alt) actief; laad een woordenboek in «Mijn woordenboek»",
+                    "InstalledInWindowsTag":  "Windows"
                 }
 }

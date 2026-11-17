@@ -114,6 +114,14 @@
                     "LastDoubleCapFixFormat":  "Исправлена заглавная: «{0}» → «{1}»",
                     "CheckIgnoreProfanity":  "Не исправлять маты и сленг на обычные слова",
                     "StatMin":  "мин",
-                    "StatSec":  "сек"
+                    "StatSec":  "сек",
+                    "BtnAddLanguage":  "+ Добавить язык / раскладку...",
+                    "AddLanguageTitle":  "Добавить язык и раскладку клавиатуры",
+                    "AddLanguageSearchHint":  "Поиск по названию, коду (DE, FR, PL) или Windows KLID (например, 00000407):",
+                    "BadgeDictConnected":  "✓ Словарь",
+                    "BadgeDictManualOnly":  "Alt+Alt",
+                    "TooltipDictConnected":  "Словарь подключён ({0} слов): автопереключение и опечатки активны",
+                    "TooltipDictMissing":  "Без словаря: работает ручной перевод (Alt+Alt); загрузите словарь во вкладке «Мой словарь»",
+                    "InstalledInWindowsTag":  "Windows"
                 }
 }

@@ -163,8 +163,10 @@ namespace LanguageSwitcher.Services
 
                 AutoActionType actionType = AutoActionType.None;
                 string newWord = string.Empty;
-                SupportedLanguage origLang = args.ActiveWindowLanguage ?? _layoutConverter.DetectSourceLanguage(args.TypedWord, settings);
-                SupportedLanguage targetLang = origLang;
+                string? activeWinKlid = KeyboardHookService.GetWindowKeyboardLanguage(args.ForegroundHwnd, settings)
+                    ?? args.ActiveWindowLanguage;
+                string origLang = activeWinKlid ?? _layoutConverter.DetectSourceLanguage(args.TypedWord, settings);
+                string targetLang = origLang;
 
                 // Приоритет 1: Пользовательские автозамены и сокращения (autoreplace.json)
                 if (_autoReplaceService.TryResolveReplacement(args.TypedWord, settings, out string autoReplacement))
@@ -177,7 +179,7 @@ namespace LanguageSwitcher.Services
                     // Приоритет 2: Автоматическое переключение раскладки (AutoSwitchLayout)
                     AutoSwitchWordResult switchResult = _dictionaryService.EvaluateAutoSwitch(
                         args.TypedWord,
-                        args.ActiveWindowLanguage,
+                        activeWinKlid,
                         settings,
                         _layoutConverter);
 
@@ -474,10 +476,12 @@ namespace LanguageSwitcher.Services
                 }
 
                 // 4. Конвертируем текст по карте раскладок с сохранением регистра и учётом цикла языков
+                string? activeWindowLang = KeyboardHookService.GetWindowKeyboardLanguage(currentForeground, settings);
                 ConversionResult conversion = _layoutConverter.ConvertWithCycle(
                     coreText,
                     settings,
-                    isContinuation: isContinuation);
+                    isContinuation: isContinuation,
+                    activeWindowLanguage: activeWindowLang);
 
                 if (!conversion.Success)
                 {
@@ -529,11 +533,11 @@ namespace LanguageSwitcher.Services
         }
 
         /// <summary>
-        /// Переключает системную раскладку клавиатуры в активном окне на указанный язык.
+        /// Переключает системную раскладку клавиатуры в активном окне на указанный KLID/язык.
         /// </summary>
-        public static void SwitchActiveWindowLayout(SupportedLanguage targetLanguage)
+        public static void SwitchActiveWindowLayout(string targetKlid)
         {
-            LanguageInfo info = LanguageCatalog.GetInfo(targetLanguage);
+            KeyboardLayoutInfo info = UniversalLayoutService.Instance.GetLayoutInfo(targetKlid);
             IntPtr targetHkl = ResolveKeyboardLayoutHandle(info);
             if (targetHkl == IntPtr.Zero)
             {
@@ -568,7 +572,7 @@ namespace LanguageSwitcher.Services
             PostMessage(foregroundHwnd, WM_INPUTLANGCHANGEREQUEST, IntPtr.Zero, targetHkl);
         }
 
-        private bool ShouldTreatPunctuationAsDelimiter(string currentWord, char punctuationChar, SupportedLanguage? windowLang)
+        private bool ShouldTreatPunctuationAsDelimiter(string currentWord, char punctuationChar, string? windowLang)
         {
             AppSettings settings = _settingsSnapshot;
             if (_autoReplaceService.TryResolveReplacement(currentWord, settings, out _))
@@ -581,7 +585,7 @@ namespace LanguageSwitcher.Services
                 return true;
             }
 
-            if (windowLang.HasValue && _dictionaryService.ContainsWord(windowLang.Value, currentWord))
+            if (!string.IsNullOrEmpty(windowLang) && _dictionaryService.ContainsWord(windowLang, currentWord))
             {
                 return true;
             }
@@ -589,8 +593,9 @@ namespace LanguageSwitcher.Services
             return _dictionaryService.EvaluateAutoSwitch(currentWord, windowLang, settings, _layoutConverter).ShouldSwitch;
         }
 
-        private static IntPtr ResolveKeyboardLayoutHandle(LanguageInfo info)
+        private static IntPtr ResolveKeyboardLayoutHandle(KeyboardLayoutInfo info)
         {
+            IntPtr fallbackByLangId = IntPtr.Zero;
             int count = GetKeyboardLayoutList(0, null);
             if (count > 0)
             {
@@ -598,15 +603,22 @@ namespace LanguageSwitcher.Services
                 int actual = GetKeyboardLayoutList(count, installed);
                 for (int i = 0; i < actual; i++)
                 {
-                    ushort langId = (ushort)(installed[i].ToInt64() & 0xFFFF);
-                    if (langId == info.LanguageId)
+                    string? installedKlid = UniversalLayoutService.Instance.ResolveKlidFromHkl(installed[i]);
+                    if (string.Equals(installedKlid, info.Klid, StringComparison.OrdinalIgnoreCase))
                     {
                         return installed[i];
+                    }
+
+                    ushort langId = (ushort)(installed[i].ToInt64() & 0xFFFF);
+                    if (langId == info.LanguageId && fallbackByLangId == IntPtr.Zero)
+                    {
+                        fallbackByLangId = installed[i];
                     }
                 }
             }
 
-            return LoadKeyboardLayout(info.KeyboardLayoutId, KLF_ACTIVATE);
+            IntPtr loaded = LoadKeyboardLayout(info.Klid, KLF_ACTIVATE);
+            return loaded != IntPtr.Zero ? loaded : fallbackByLangId;
         }
 
         private static void CancelActiveMenuModeIfNeeded()

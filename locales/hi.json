@@ -114,6 +114,14 @@
                     "LastDoubleCapFixFormat":  "बड़ा अक्षर ठीक किया: «{0}» → «{1}»",
                     "CheckIgnoreProfanity":  "अपशब्दों और स्लैंग को सामान्य शब्दों में न बदलें",
                     "StatMin":  "मिनट",
-                    "StatSec":  "सेकंड"
+                    "StatSec":  "सेकंड",
+                    "BtnAddLanguage":  "+ भाषा / लेआउट जोड़ें...",
+                    "AddLanguageTitle":  "भाषा और कीबोर्ड लेआउट जोड़ें",
+                    "AddLanguageSearchHint":  "नाम, कोड (DE, FR, PL) या Windows KLID (उदा. 00010439) से खोजें:",
+                    "BadgeDictConnected":  "✓ शब्दकोश सक्रिय",
+                    "BadgeDictManualOnly":  "Alt+Alt",
+                    "TooltipDictConnected":  "शब्दकोश लोड ({0} शब्द): ऑटो-स्विच और टाइपो सुधार सक्रिय",
+                    "TooltipDictMissing":  "कोई शब्दकोश नहीं: मैनुअल रूपांतरण (Alt+Alt) सक्रिय; «मेरा शब्दकोश» टैब से लोड करें",
+                    "InstalledInWindowsTag":  "Windows"
                 }
 }

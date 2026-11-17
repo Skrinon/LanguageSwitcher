@@ -114,6 +114,14 @@
                     "LastDoubleCapFixFormat":  "Poprawiono wielką literę: «{0}» → «{1}»",
                     "CheckIgnoreProfanity":  "Nie zamieniaj wulgaryzmów i slangu na zwykłe słowa",
                     "StatMin":  "min",
-                    "StatSec":  "sek"
+                    "StatSec":  "sek",
+                    "BtnAddLanguage":  "+ Dodaj język / układ...",
+                    "AddLanguageTitle":  "Dodaj język i układ klawiatury",
+                    "AddLanguageSearchHint":  "Szukaj po nazwie, kodzie (DE, FR, PL) lub KLID Windows (np. 00000415):",
+                    "BadgeDictConnected":  "✓ Słownik",
+                    "BadgeDictManualOnly":  "Alt+Alt",
+                    "TooltipDictConnected":  "Słownik aktywny ({0} słów): automatyczne przełączanie i korekta aktywne",
+                    "TooltipDictMissing":  "Brak słownika: działa ręczna konwersja (Alt+Alt); wgraj słownik w zakładce «Mój słownik»",
+                    "InstalledInWindowsTag":  "Windows"
                 }
 }

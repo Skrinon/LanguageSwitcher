@@ -114,6 +114,14 @@
                     "LastDoubleCapFixFormat":  "Çift büyük harf düzeltildi: «{0}» → «{1}»",
                     "CheckIgnoreProfanity":  "Argo ve küfürlü ifadeleri normal kelimelerle değiştirme",
                     "StatMin":  "dk",
-                    "StatSec":  "sn"
+                    "StatSec":  "sn",
+                    "BtnAddLanguage":  "+ Dil / düzen ekle...",
+                    "AddLanguageTitle":  "Dil ve klavye düzeni ekle",
+                    "AddLanguageSearchHint":  "Ad, kod (DE, FR, PL) veya Windows KLID ile arayın (örn. 0000041F):",
+                    "BadgeDictConnected":  "✓ Sözlük",
+                    "BadgeDictManualOnly":  "Alt+Alt",
+                    "TooltipDictConnected":  "Sözlük yüklendi ({0} kelime): otomatik geçiş ve yazım düzeltme etkin",
+                    "TooltipDictMissing":  "Sözlük yok: manuel dönüştürme (Alt+Alt) etkin; «Sözlüğüm» sekmesinden sözlük yükleyin",
+                    "InstalledInWindowsTag":  "Windows"
                 }
 }

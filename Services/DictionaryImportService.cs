@@ -51,11 +51,11 @@ namespace LanguageSwitcher.Services
         }
 
         /// <summary>
-        /// Импортирует файл словаря в user_dictionary.json с привязкой к указанному языку.
+        /// Импортирует файл словаря в user_dictionary.json с привязкой к указанному KLID языка.
         /// </summary>
         public async Task<DictionaryImportResult> ImportFileAsync(
             string filePath,
-            SupportedLanguage targetLanguage,
+            string targetLanguageKlid,
             IProgress<int>? progress = null,
             CancellationToken cancellationToken = default)
         {
@@ -138,7 +138,7 @@ namespace LanguageSwitcher.Services
                     }
                 }
 
-                (int addedCount, int duplicatesWithExisting) = _dictionaryService.AddUserWords(parsedWords, targetLanguage);
+                (int addedCount, int duplicatesWithExisting) = _dictionaryService.AddUserWords(parsedWords, targetLanguageKlid);
                 progress?.Report(100);
 
                 return new DictionaryImportResult(

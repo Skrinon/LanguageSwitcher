@@ -114,6 +114,14 @@
                     "LastDoubleCapFixFormat":  "Виправлено велику літеру: «{0}» → «{1}»",
                     "CheckIgnoreProfanity":  "Не виправляти ненормативну лексику та сленг на звичайні слова",
                     "StatMin":  "хв",
-                    "StatSec":  "сек"
+                    "StatSec":  "сек",
+                    "BtnAddLanguage":  "+ Додати мову / розкладку...",
+                    "AddLanguageTitle":  "Додати мову та розкладку клавіатури",
+                    "AddLanguageSearchHint":  "Пошук за назвою, кодом (DE, FR, PL) або Windows KLID (наприклад, 00000407):",
+                    "BadgeDictConnected":  "✓ Словник",
+                    "BadgeDictManualOnly":  "Alt+Alt",
+                    "TooltipDictConnected":  "Словник підключено ({0} слів): автоперемикання й виправлення помилок активні",
+                    "TooltipDictMissing":  "Без словника: працює ручний переклад (Alt+Alt); завантажте словник на вкладці «Мій словник»",
+                    "InstalledInWindowsTag":  "Windows"
                 }
 }

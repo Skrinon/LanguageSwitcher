@@ -1,19 +1,11 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text.Json.Serialization;
+using LanguageSwitcher.Services;
 
 namespace LanguageSwitcher.Models
 {
-    /// <summary>
-    /// Поддерживаемые раскладки клавиатуры.
-    /// </summary>
-    public enum SupportedLanguage
-    {
-        English = 0,
-        Russian = 1,
-        Ukrainian = 2
-    }
-
     /// <summary>
     /// Тип автоматического действия, выполненного при вводе разделителя слова.
     /// </summary>
@@ -36,82 +28,43 @@ namespace LanguageSwitcher.Models
     }
 
     /// <summary>
-    /// Метаданные поддерживаемого языка и идентификаторы раскладки Windows (KLID / LCID).
+    /// Динамические метаданные клавиатурной раскладки Windows (KLID / LCID / культура / бейдж).
     /// </summary>
-    public sealed class LanguageInfo
+    public sealed class KeyboardLayoutInfo
     {
-        public SupportedLanguage Language { get; }
-        public string DisplayName { get; }
-        public string ShortCode { get; }
-        public string KeyboardLayoutId { get; }
-        public ushort LanguageId { get; }
+        public string Klid { get; init; } = UniversalLayoutService.EnglishUsKlid;
+        public string Id => Klid;
+        public string CultureCode { get; init; } = "en-US";
+        public string IsoLanguageCode { get; init; } = "en";
+        public string DisplayName { get; init; } = "English (US)";
+        public string NativeName { get; init; } = "English (United States)";
+        public string ShortBadge { get; init; } = "EN";
+        public ushort LanguageId { get; init; } = 0x0409;
+        public bool IsInstalledInWindows { get; set; }
 
-        public LanguageInfo(
-            SupportedLanguage language,
-            string displayName,
-            string shortCode,
-            string keyboardLayoutId,
-            ushort languageId)
-        {
-            Language = language;
-            DisplayName = displayName;
-            ShortCode = shortCode;
-            KeyboardLayoutId = keyboardLayoutId;
-            LanguageId = languageId;
-        }
+        [JsonIgnore]
+        public string DisplayLabel => $"[{ShortBadge}] {DisplayName}";
+
+        [JsonIgnore]
+        public string PickerDisplayLabel => IsInstalledInWindows
+            ? $"[{ShortBadge}] {DisplayName} ({CultureCode} • KLID {Klid}) ★"
+            : $"[{ShortBadge}] {DisplayName} ({CultureCode} • KLID {Klid})";
     }
 
     /// <summary>
-    /// Реестр метаданных для всех поддерживаемых языков.
-    /// </summary>
-    public static class LanguageCatalog
-    {
-        public static readonly IReadOnlyList<LanguageInfo> All = new[]
-        {
-            new LanguageInfo(SupportedLanguage.English, "English (US)", "EN", "00000409", 0x0409),
-            new LanguageInfo(SupportedLanguage.Russian, "Русский", "RU", "00000419", 0x0419),
-            new LanguageInfo(SupportedLanguage.Ukrainian, "Українська", "UA", "00000422", 0x0422)
-        };
-
-        public static LanguageInfo GetInfo(SupportedLanguage language)
-        {
-            foreach (LanguageInfo item in All)
-            {
-                if (item.Language == language)
-                {
-                    return item;
-                }
-            }
-
-            return All[0];
-        }
-
-        public static SupportedLanguage? TryFromLanguageId(ushort langId)
-        {
-            foreach (LanguageInfo item in All)
-            {
-                if (item.LanguageId == langId)
-                {
-                    return item.Language;
-                }
-            }
-
-            return null;
-        }
-    }
-
-    /// <summary>
-    /// Запись пользовательского словаря с привязкой к языку.
+    /// Запись пользовательского словаря с привязкой к KLID языка/раскладки.
     /// </summary>
     public sealed class UserDictionaryEntry
     {
         public string Word { get; set; } = string.Empty;
 
-        [JsonConverter(typeof(JsonStringEnumConverter))]
-        public SupportedLanguage Language { get; set; } = SupportedLanguage.Russian;
+        /// <summary>
+        /// Идентификатор раскладки Windows (KLID в формате "00000409" или код языка для обратной совместимости).
+        /// </summary>
+        public string Language { get; set; } = UniversalLayoutService.RussianKlid;
 
         [JsonIgnore]
-        public string LanguageCode => LanguageCatalog.GetInfo(Language).ShortCode;
+        public string LanguageCode => UniversalLayoutService.Instance.GetLayoutInfo(Language).ShortBadge;
     }
 
     /// <summary>
@@ -137,8 +90,8 @@ namespace LanguageSwitcher.Models
         public string OriginalWord { get; init; } = string.Empty;
         public string ReplacedText { get; init; } = string.Empty;
         public string DelimiterText { get; init; } = string.Empty;
-        public SupportedLanguage OriginalLanguage { get; init; }
-        public SupportedLanguage TargetLanguage { get; init; }
+        public string OriginalLanguage { get; init; } = UniversalLayoutService.EnglishUsKlid;
+        public string TargetLanguage { get; init; } = UniversalLayoutService.EnglishUsKlid;
         public IntPtr TargetWindowHwnd { get; init; }
         public double TimeSavedSeconds { get; init; }
     }
@@ -201,19 +154,23 @@ namespace LanguageSwitcher.Models
         public bool UseDefaultSourceLanguage { get; set; } = false;
 
         /// <summary>
-        /// Исходный язык по умолчанию, используемый в первую очередь при включённой опции.
+        /// KLID исходного языка по умолчанию, используемого в первую очередь при включённой опции.
         /// </summary>
-        [JsonConverter(typeof(JsonStringEnumConverter))]
-        public SupportedLanguage DefaultSourceLanguage { get; set; } = SupportedLanguage.English;
+        public string DefaultSourceLanguage { get; set; } = UniversalLayoutService.EnglishUsKlid;
 
         /// <summary>
-        /// Отмеченные целевые языки для циклической конвертации (минимум 2).
+        /// Все языки/раскладки (KLID), добавленные пользователем в рабочий список.
+        /// </summary>
+        public List<string> AddedLanguages { get; set; } = new List<string>();
+
+        /// <summary>
+        /// Отмеченные целевые языки (KLID) для циклической конвертации и автопереключения (минимум 2).
         /// </summary>
         [JsonPropertyName("TargetLanguages")]
-        public List<SupportedLanguage> TargetLanguages { get; set; } = new List<SupportedLanguage>
+        public List<string> TargetLanguages { get; set; } = new List<string>
         {
-            SupportedLanguage.English,
-            SupportedLanguage.Russian
+            UniversalLayoutService.EnglishUsKlid,
+            UniversalLayoutService.RussianKlid
         };
 
         /// <summary>
@@ -222,7 +179,7 @@ namespace LanguageSwitcher.Models
         public bool AutoSwitchLayout { get; set; } = true;
 
         /// <summary>
-        /// Исправлять механические опечатки в словах по матрице соседних клавиш (Приоритет 3).
+        /// Исправлять механические опечатки в словах по динамической матрице соседних клавиш (Приоритет 3).
         /// </summary>
         public bool AutoCorrectTypos { get; set; } = true;
 
@@ -268,56 +225,141 @@ namespace LanguageSwitcher.Models
         public bool IsPaused { get; set; } = false;
 
         /// <summary>
-        /// Приводит настройки к валидному состоянию (удаляет дубликаты и гарантирует минимум 2 целевых языка).
+        /// Приводит настройки к валидному состоянию, мигрирует устаревшие строковые коды (English/Russian/Ukrainian)
+        /// в канонические KLID и гарантирует минимум 2 целевых языка.
         /// </summary>
         public void Normalize()
         {
+            UniversalLayoutService layoutService = UniversalLayoutService.Instance;
+
             if (string.IsNullOrWhiteSpace(InterfaceLanguage))
             {
                 InterfaceLanguage = "ru";
             }
 
-            var deduplicated = new List<SupportedLanguage>();
+            DefaultSourceLanguage = layoutService.NormalizeKlid(DefaultSourceLanguage);
+
+            var cleanTargets = new List<string>();
             if (TargetLanguages != null)
             {
-                foreach (SupportedLanguage lang in TargetLanguages)
+                foreach (string raw in TargetLanguages)
                 {
-                    if (Enum.IsDefined(typeof(SupportedLanguage), lang) && !deduplicated.Contains(lang))
+                    if (string.IsNullOrWhiteSpace(raw))
                     {
-                        deduplicated.Add(lang);
+                        continue;
+                    }
+
+                    string klid = layoutService.NormalizeKlid(raw);
+                    if (!cleanTargets.Contains(klid, StringComparer.OrdinalIgnoreCase))
+                    {
+                        cleanTargets.Add(klid);
                     }
                 }
             }
 
-            if (deduplicated.Count < 2)
+            var cleanAdded = new List<string>();
+            bool wasAddedEmpty = AddedLanguages == null || AddedLanguages.Count == 0;
+            if (AddedLanguages != null)
             {
-                SupportedLanguage[] fallbacks =
+                foreach (string raw in AddedLanguages)
                 {
-                    SupportedLanguage.English,
-                    SupportedLanguage.Russian,
-                    SupportedLanguage.Ukrainian
-                };
-
-                foreach (SupportedLanguage fallback in fallbacks)
-                {
-                    if (!deduplicated.Contains(fallback))
+                    if (string.IsNullOrWhiteSpace(raw))
                     {
-                        deduplicated.Add(fallback);
+                        continue;
                     }
 
-                    if (deduplicated.Count >= 2)
+                    string klid = layoutService.NormalizeKlid(raw);
+                    if (!cleanAdded.Contains(klid, StringComparer.OrdinalIgnoreCase))
+                    {
+                        cleanAdded.Add(klid);
+                    }
+                }
+            }
+
+            if (wasAddedEmpty)
+            {
+                // Автоматически подхватываем раскладки, установленные у пользователя в Windows
+                foreach (string installedKlid in layoutService.GetInstalledWindowsKlids())
+                {
+                    if (!cleanAdded.Contains(installedKlid, StringComparer.OrdinalIgnoreCase))
+                    {
+                        cleanAdded.Add(installedKlid);
+                    }
+                }
+            }
+
+            foreach (string target in cleanTargets)
+            {
+                if (!cleanAdded.Contains(target, StringComparer.OrdinalIgnoreCase))
+                {
+                    cleanAdded.Add(target);
+                }
+            }
+
+            // Если это первый запуск или в списке меньше 2 языков, гарантируем наличие базовых раскладок
+            string[] defaultFallbacks =
+            {
+                UniversalLayoutService.EnglishUsKlid,
+                UniversalLayoutService.RussianKlid,
+                UniversalLayoutService.UkrainianKlid
+            };
+
+            if (wasAddedEmpty || cleanAdded.Count < 2)
+            {
+                foreach (string fb in defaultFallbacks)
+                {
+                    if (!cleanAdded.Contains(fb, StringComparer.OrdinalIgnoreCase))
+                    {
+                        cleanAdded.Add(fb);
+                    }
+
+                    if (!wasAddedEmpty && cleanAdded.Count >= 2)
                     {
                         break;
                     }
                 }
             }
 
-            if (!Enum.IsDefined(typeof(SupportedLanguage), DefaultSourceLanguage))
+            if (cleanTargets.Count < 2)
             {
-                DefaultSourceLanguage = SupportedLanguage.English;
+                foreach (string candidate in cleanAdded)
+                {
+                    if (!cleanTargets.Contains(candidate, StringComparer.OrdinalIgnoreCase))
+                    {
+                        cleanTargets.Add(candidate);
+                    }
+
+                    if (cleanTargets.Count >= 2)
+                    {
+                        break;
+                    }
+                }
+
+                foreach (string fb in defaultFallbacks)
+                {
+                    if (cleanTargets.Count >= 2)
+                    {
+                        break;
+                    }
+
+                    if (!cleanTargets.Contains(fb, StringComparer.OrdinalIgnoreCase))
+                    {
+                        cleanTargets.Add(fb);
+                        if (!cleanAdded.Contains(fb, StringComparer.OrdinalIgnoreCase))
+                        {
+                            cleanAdded.Add(fb);
+                        }
+                    }
+                }
             }
 
-            TargetLanguages = deduplicated;
+            if (!cleanAdded.Contains(DefaultSourceLanguage, StringComparer.OrdinalIgnoreCase))
+            {
+                DefaultSourceLanguage = cleanAdded[0];
+            }
+
+            AddedLanguages = cleanAdded;
+            TargetLanguages = cleanTargets;
         }
 
         /// <summary>
@@ -330,7 +372,8 @@ namespace LanguageSwitcher.Models
                 InterfaceLanguage = InterfaceLanguage,
                 UseDefaultSourceLanguage = UseDefaultSourceLanguage,
                 DefaultSourceLanguage = DefaultSourceLanguage,
-                TargetLanguages = new List<SupportedLanguage>(TargetLanguages),
+                AddedLanguages = new List<string>(AddedLanguages),
+                TargetLanguages = new List<string>(TargetLanguages),
                 AutoSwitchLayout = AutoSwitchLayout,
                 AutoCorrectTypos = AutoCorrectTypos,
                 IgnoreProfanityInTypoCorrection = IgnoreProfanityInTypoCorrection,

@@ -114,6 +114,14 @@
                     "LastDoubleCapFixFormat":  "Großbuchstabe korrigiert: «{0}» → «{1}»",
                     "CheckIgnoreProfanity":  "Kraftausdrücke und Slang nicht durch normale Wörter ersetzen",
                     "StatMin":  "Min",
-                    "StatSec":  "Sek"
+                    "StatSec":  "Sek",
+                    "BtnAddLanguage":  "+ Sprache / Layout hinzufügen...",
+                    "AddLanguageTitle":  "Sprache \u0026 Tastaturlayout hinzufügen",
+                    "AddLanguageSearchHint":  "Suche nach Name, Kürzel (DE, FR, PL) oder Windows-KLID (z. B. 00000407):",
+                    "BadgeDictConnected":  "✓ Wörterbuch",
+                    "BadgeDictManualOnly":  "Alt+Alt",
+                    "TooltipDictConnected":  "Wörterbuch aktiv ({0} Wörter): Auto-Wechsel und Tippfehlerkorrektur aktiv",
+                    "TooltipDictMissing":  "Ohne Wörterbuch: Manuelle Umwandlung (Alt+Alt) aktiv; Wörterbuch im Tab «Mein Wörterbuch» laden",
+                    "InstalledInWindowsTag":  "Windows"
                 }
 }

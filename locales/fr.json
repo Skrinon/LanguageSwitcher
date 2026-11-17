@@ -114,6 +114,14 @@
                     "LastDoubleCapFixFormat":  "Double majuscule corrigée : « {0} » → « {1} »",
                     "CheckIgnoreProfanity":  "Ne pas corriger l\u0027argot ou les jurons en mots courants",
                     "StatMin":  "min",
-                    "StatSec":  "s"
+                    "StatSec":  "s",
+                    "BtnAddLanguage":  "+ Ajouter langue / disposition...",
+                    "AddLanguageTitle":  "Ajouter une langue et disposition clavier",
+                    "AddLanguageSearchHint":  "Rechercher par nom, code (DE, FR, PL) ou KLID Windows (ex. 0000040C) :",
+                    "BadgeDictConnected":  "✓ Dictionnaire",
+                    "BadgeDictManualOnly":  "Alt+Alt",
+                    "TooltipDictConnected":  "Dictionnaire chargé ({0} mots) : bascule auto et correction actives",
+                    "TooltipDictMissing":  "Sans dictionnaire : conversion manuelle (Alt+Alt) active ; chargez un dictionnaire dans « Mon dictionnaire »",
+                    "InstalledInWindowsTag":  "Windows"
                 }
 }

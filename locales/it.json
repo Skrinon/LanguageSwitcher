@@ -114,6 +114,14 @@
                     "LastDoubleCapFixFormat":  "Doppia maiuscola corretta: «{0}» → «{1}»",
                     "CheckIgnoreProfanity":  "Non correggere slang o parolacce in parole comuni",
                     "StatMin":  "min",
-                    "StatSec":  "sec"
+                    "StatSec":  "sec",
+                    "BtnAddLanguage":  "+ Aggiungi lingua / layout...",
+                    "AddLanguageTitle":  "Aggiungi lingua e layout tastiera",
+                    "AddLanguageSearchHint":  "Cerca per nome, codice (DE, FR, PL) o KLID Windows (es. 00000410):",
+                    "BadgeDictConnected":  "✓ Dizionario",
+                    "BadgeDictManualOnly":  "Alt+Alt",
+                    "TooltipDictConnected":  "Dizionario caricato ({0} parole): cambio automatico e correzione attivi",
+                    "TooltipDictMissing":  "Senza dizionario: conversione manuale (Alt+Alt) attiva; carica un dizionario in «Il mio dizionario»",
+                    "InstalledInWindowsTag":  "Windows"
                 }
 }
