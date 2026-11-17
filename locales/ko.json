@@ -122,6 +122,14 @@
                     "BadgeDictManualOnly":  "Alt+Alt",
                     "TooltipDictConnected":  "사전 로드됨 ({0}단어): 자동 전환 및 오타 교정 활성화",
                     "TooltipDictMissing":  "사전 없음: 수동 변환(Alt+Alt) 작동; «내 사전» 탭에서 사전을 불러오세요",
-                    "InstalledInWindowsTag":  "Windows"
+                    "InstalledInWindowsTag":  "Windows",
+                    "SectionTriggerKey":  "전환 단축키 (트리거)",
+                    "LabelCurrentTrigger":  "현재 키:",
+                    "BtnRecordKey":  "키 지정...",
+                    "BtnRecordingKeyPrompt":  "원하는 키를 누르세요... (Esc 취소)",
+                    "BtnResetTriggerKey":  "기본값 (Left Alt × 2)",
+                    "CheckTriggerDoubleTap":  "빠른 두 번 누르기 필요 (×2)",
+                    "TriggerHint":  "단일 키(Pause, Caps Lock, Right Ctrl, F9) 또는 조합(Ctrl + Space)을 지정할 수 있습니다. 두 번 누르기는 ×2를 선택하세요.",
+                    "TriggerSubheaderFormat":  "전환 트리거: {0}"
                 }
 }

@@ -10,7 +10,10 @@
         WindowStartupLocation="CenterScreen"
         ShowInTaskbar="True"
         Background="{StaticResource WindowBgBrush}"
-        FontFamily="Segoe UI Variable Text, Segoe UI, Tahoma">
+        FontFamily="Segoe UI Variable Text, Segoe UI, Tahoma"
+        PreviewKeyDown="Window_PreviewKeyDown"
+        PreviewKeyUp="Window_PreviewKeyUp"
+        Deactivated="Window_Deactivated">
 
     <Grid Margin="16,14,16,14">
         <Grid.RowDefinitions>
@@ -32,7 +35,8 @@
                            FontSize="19"
                            FontWeight="SemiBold"
                            Foreground="{StaticResource TextPrimaryBrush}" />
-                <TextBlock Text="{DynamicResource Loc.AppSubheader}"
+                <TextBlock x:Name="AppSubheaderText"
+                           Text="{DynamicResource Loc.AppSubheader}"
                            FontSize="12"
                            Foreground="{StaticResource TextSecondaryBrush}"
                            Margin="0,2,0,0" />
@@ -101,6 +105,61 @@
                                           SelectedValuePath="LanguageCode"
                                           SelectionChanged="InterfaceLanguageComboBox_SelectionChanged" />
                             </Grid>
+                        </Border>
+
+                        <!-- Настройка клавиши переключения (Триггер) -->
+                        <Border Style="{StaticResource CardBorderStyle}">
+                            <StackPanel>
+                                <TextBlock Text="{DynamicResource Loc.SectionTriggerKey}" Style="{StaticResource SectionTitleStyle}" />
+
+                                <Grid Margin="0,0,0,8">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+
+                                    <Border Grid.Column="0"
+                                            Background="{StaticResource AccentSoftBrush}"
+                                            BorderBrush="#B9D7F2"
+                                            BorderThickness="1"
+                                            CornerRadius="6"
+                                            Padding="12,6"
+                                            VerticalAlignment="Center"
+                                            Margin="0,0,10,0">
+                                        <TextBlock x:Name="TriggerKeyDisplayText"
+                                                   Text="Left Alt × 2"
+                                                   FontSize="13"
+                                                   FontWeight="SemiBold"
+                                                   Foreground="#004578" />
+                                    </Border>
+
+                                    <Button x:Name="RecordTriggerKeyButton"
+                                            Grid.Column="1"
+                                            Style="{StaticResource AccentButtonStyle}"
+                                            Content="{DynamicResource Loc.BtnRecordKey}"
+                                            Margin="0,0,8,0"
+                                            Click="RecordTriggerKeyButton_Click" />
+
+                                    <Button x:Name="ResetTriggerKeyButton"
+                                            Grid.Column="2"
+                                            Style="{StaticResource SecondaryButtonStyle}"
+                                            Content="{DynamicResource Loc.BtnResetTriggerKey}"
+                                            Click="ResetTriggerKeyButton_Click" />
+                                </Grid>
+
+                                <CheckBox x:Name="TriggerDoubleTapCheckBox"
+                                          Style="{StaticResource FluentCheckBoxStyle}"
+                                          Content="{DynamicResource Loc.CheckTriggerDoubleTap}"
+                                          Margin="0,0,0,6"
+                                          Checked="TriggerDoubleTapCheckBox_Changed"
+                                          Unchecked="TriggerDoubleTapCheckBox_Changed" />
+
+                                <TextBlock Text="{DynamicResource Loc.TriggerHint}"
+                                           FontSize="11.3"
+                                           Foreground="{StaticResource TextSecondaryBrush}"
+                                           TextWrapping="Wrap" />
+                            </StackPanel>
                         </Border>
 
                         <!-- Исходный и целевые языки -->

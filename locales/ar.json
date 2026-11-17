@@ -122,6 +122,14 @@
                     "BadgeDictManualOnly":  "Alt+Alt",
                     "TooltipDictConnected":  "القاموس محمّل ({0} كلمة): التبديل التلقائي وتصحيح الأخطاء نشطان",
                     "TooltipDictMissing":  "بدون قاموس: التحويل اليدوي (Alt+Alt) يعمل؛ حمّل قاموساً من تبويب «قاموسي»",
-                    "InstalledInWindowsTag":  "Windows"
+                    "InstalledInWindowsTag":  "Windows",
+                    "SectionTriggerKey":  "مفتاح التبديل (المُشغّل)",
+                    "LabelCurrentTrigger":  "المفتاح الحالي:",
+                    "BtnRecordKey":  "تعيين مفتاح...",
+                    "BtnRecordingKeyPrompt":  "اضغط أي مفتاح... (Esc للإلغاء)",
+                    "BtnResetTriggerKey":  "الافتراضي (Left Alt × 2)",
+                    "CheckTriggerDoubleTap":  "يتطلب ضغطاً مزدوجاً سريعاً (×2)",
+                    "TriggerHint":  "يمكنك تعيين أي مفتاح منفرد (Pause, Caps Lock, Right Ctrl, F9) أو اختصار (Ctrl + Space). فعّل ×2 للضغط المزدوج.",
+                    "TriggerSubheaderFormat":  "مفتاح التبديل: {0}"
                 }
 }

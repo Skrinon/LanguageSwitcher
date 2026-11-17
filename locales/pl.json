@@ -122,6 +122,14 @@
                     "BadgeDictManualOnly":  "Alt+Alt",
                     "TooltipDictConnected":  "Słownik aktywny ({0} słów): automatyczne przełączanie i korekta aktywne",
                     "TooltipDictMissing":  "Brak słownika: działa ręczna konwersja (Alt+Alt); wgraj słownik w zakładce «Mój słownik»",
-                    "InstalledInWindowsTag":  "Windows"
+                    "InstalledInWindowsTag":  "Windows",
+                    "SectionTriggerKey":  "Klawisz przełączania",
+                    "LabelCurrentTrigger":  "Aktualny klawisz:",
+                    "BtnRecordKey":  "Przypisz klawisz...",
+                    "BtnRecordingKeyPrompt":  "Naciśnij klawisz... (Esc = anuluj)",
+                    "BtnResetTriggerKey":  "Domyślnie (Left Alt × 2)",
+                    "CheckTriggerDoubleTap":  "Wymagaj podwójnego szybkiego naciśnięcia (×2)",
+                    "TriggerHint":  "Możesz przypisać dowolny klawisz (Pause, Caps Lock, Right Ctrl, F9) lub skrót (Ctrl + Space). Zaznacz ×2 dla podwójnego kliknięcia.",
+                    "TriggerSubheaderFormat":  "Klawisz przełączania: {0}"
                 }
 }

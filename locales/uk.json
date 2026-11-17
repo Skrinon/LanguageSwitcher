@@ -122,6 +122,14 @@
                     "BadgeDictManualOnly":  "Alt+Alt",
                     "TooltipDictConnected":  "Словник підключено ({0} слів): автоперемикання й виправлення помилок активні",
                     "TooltipDictMissing":  "Без словника: працює ручний переклад (Alt+Alt); завантажте словник на вкладці «Мій словник»",
-                    "InstalledInWindowsTag":  "Windows"
+                    "InstalledInWindowsTag":  "Windows",
+                    "SectionTriggerKey":  "Клавіша перемикання розкладки",
+                    "LabelCurrentTrigger":  "Поточна клавіша:",
+                    "BtnRecordKey":  "Призначити клавішу...",
+                    "BtnRecordingKeyPrompt":  "Натисніть клавішу... (Esc — скасувати)",
+                    "BtnResetTriggerKey":  "За замовчуванням (Left Alt × 2)",
+                    "CheckTriggerDoubleTap":  "Вимагати подвійне швидке натискання (×2)",
+                    "TriggerHint":  "Можна призначити будь-яку окрему клавішу (Pause, Caps Lock, Right Ctrl, F9) або комбінацію (Ctrl + Space). Позначте ×2 для подвійного натискання.",
+                    "TriggerSubheaderFormat":  "Тригер перемикання: {0}"
                 }
 }

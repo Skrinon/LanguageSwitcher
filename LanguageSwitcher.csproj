@@ -9,7 +9,7 @@
     <UseWindowsForms>true</UseWindowsForms>
     <AssemblyName>LanguageSwitcher</AssemblyName>
     <RootNamespace>LanguageSwitcher</RootNamespace>
-    <Version>2.0.0</Version>
+    <Version>2.1.0</Version>
     <AssemblyTitle>Language Switcher</AssemblyTitle>
     <ApplicationManifest>app.manifest</ApplicationManifest>
   </PropertyGroup>

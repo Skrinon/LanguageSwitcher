@@ -122,6 +122,14 @@
                     "BadgeDictManualOnly":  "Alt+Alt",
                     "TooltipDictConnected":  "辞書読み込み済み ({0} 語): 自動切替と誤字修正が有効",
                     "TooltipDictMissing":  "辞書なし: 手動変換 (Alt+Alt) が有効。「マイ辞書」タブから辞書を読み込めます",
-                    "InstalledInWindowsTag":  "Windows"
+                    "InstalledInWindowsTag":  "Windows",
+                    "SectionTriggerKey":  "切替キー（トリガー）",
+                    "LabelCurrentTrigger":  "現在のキー:",
+                    "BtnRecordKey":  "キーを設定...",
+                    "BtnRecordingKeyPrompt":  "任意のキーを押してください... (Escで取消)",
+                    "BtnResetTriggerKey":  "既定に戻す (Left Alt × 2)",
+                    "CheckTriggerDoubleTap":  "素早い2回押しが必要 (×2)",
+                    "TriggerHint":  "任意の単体キー (Pause, Caps Lock, Right Ctrl, F9) または組み合わせ (Ctrl + Space) を割り当てられます。2回押しは ×2 を選択。",
+                    "TriggerSubheaderFormat":  "切替トリガー: {0}"
                 }
 }

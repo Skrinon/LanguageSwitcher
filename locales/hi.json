@@ -122,6 +122,14 @@
                     "BadgeDictManualOnly":  "Alt+Alt",
                     "TooltipDictConnected":  "शब्दकोश लोड ({0} शब्द): ऑटो-स्विच और टाइपो सुधार सक्रिय",
                     "TooltipDictMissing":  "कोई शब्दकोश नहीं: मैनुअल रूपांतरण (Alt+Alt) सक्रिय; «मेरा शब्दकोश» टैब से लोड करें",
-                    "InstalledInWindowsTag":  "Windows"
+                    "InstalledInWindowsTag":  "Windows",
+                    "SectionTriggerKey":  "स्विच कुंजी (ट्रिगर)",
+                    "LabelCurrentTrigger":  "वर्तमान कुंजी:",
+                    "BtnRecordKey":  "कुंजी सेट करें...",
+                    "BtnRecordingKeyPrompt":  "कोई भी कुंजी दबाएं... (Esc रद्द करने के लिए)",
+                    "BtnResetTriggerKey":  "डिफ़ॉल्ट (Left Alt × 2)",
+                    "CheckTriggerDoubleTap":  "तेज़ डबल-टैप आवश्यक (×2)",
+                    "TriggerHint":  "कोई भी एक कुंजी (Pause, Caps Lock, Right Ctrl, F9) या शॉर्टकट (Ctrl + Space) सेट करें। डबल-टैप के लिए ×2 चुनें।",
+                    "TriggerSubheaderFormat":  "ट्रिगर: {0}"
                 }
 }

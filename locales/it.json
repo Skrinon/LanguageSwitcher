@@ -122,6 +122,14 @@
                     "BadgeDictManualOnly":  "Alt+Alt",
                     "TooltipDictConnected":  "Dizionario caricato ({0} parole): cambio automatico e correzione attivi",
                     "TooltipDictMissing":  "Senza dizionario: conversione manuale (Alt+Alt) attiva; carica un dizionario in «Il mio dizionario»",
-                    "InstalledInWindowsTag":  "Windows"
+                    "InstalledInWindowsTag":  "Windows",
+                    "SectionTriggerKey":  "Tasto di commutazione",
+                    "LabelCurrentTrigger":  "Tasto attuale:",
+                    "BtnRecordKey":  "Assegna tasto...",
+                    "BtnRecordingKeyPrompt":  "Premi un tasto... (Esc per annullare)",
+                    "BtnResetTriggerKey":  "Predefinito (Left Alt × 2)",
+                    "CheckTriggerDoubleTap":  "Richiedi doppia pressione rapida (×2)",
+                    "TriggerHint":  "Puoi assegnare qualsiasi tasto (Pause, Caps Lock, Right Ctrl, F9) o scorciatoia (Ctrl + Space). Attiva ×2 per il doppio tocco.",
+                    "TriggerSubheaderFormat":  "Tasto attivo: {0}"
                 }
 }

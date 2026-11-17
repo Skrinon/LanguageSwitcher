@@ -122,6 +122,14 @@
                     "BadgeDictManualOnly":  "Alt+Alt",
                     "TooltipDictConnected":  "Dictionary loaded ({0} words): auto-switch and typo correction are active",
                     "TooltipDictMissing":  "No dictionary: manual conversion (Alt+Alt) works; load a dictionary in the My Dictionary tab",
-                    "InstalledInWindowsTag":  "Windows"
+                    "InstalledInWindowsTag":  "Windows",
+                    "SectionTriggerKey":  "Switch hotkey (Trigger)",
+                    "LabelCurrentTrigger":  "Current hotkey:",
+                    "BtnRecordKey":  "Assign key...",
+                    "BtnRecordingKeyPrompt":  "Press any key... (Esc to cancel)",
+                    "BtnResetTriggerKey":  "Default (Left Alt × 2)",
+                    "CheckTriggerDoubleTap":  "Require double rapid tap (×2)",
+                    "TriggerHint":  "Press a single key (Pause, Caps Lock, Right Ctrl, F9) or a shortcut (Ctrl + Space). Enable (×2) if you want double tap.",
+                    "TriggerSubheaderFormat":  "Trigger: {0}"
                 }
 }

@@ -122,6 +122,14 @@
                     "BadgeDictManualOnly":  "Alt+Alt",
                     "TooltipDictConnected":  "Wörterbuch aktiv ({0} Wörter): Auto-Wechsel und Tippfehlerkorrektur aktiv",
                     "TooltipDictMissing":  "Ohne Wörterbuch: Manuelle Umwandlung (Alt+Alt) aktiv; Wörterbuch im Tab «Mein Wörterbuch» laden",
-                    "InstalledInWindowsTag":  "Windows"
+                    "InstalledInWindowsTag":  "Windows",
+                    "SectionTriggerKey":  "Umschalttaste (Trigger)",
+                    "LabelCurrentTrigger":  "Aktuelle Taste:",
+                    "BtnRecordKey":  "Taste festlegen...",
+                    "BtnRecordingKeyPrompt":  "Taste drücken... (Esc = Abbruch)",
+                    "BtnResetTriggerKey":  "Standard (Left Alt × 2)",
+                    "CheckTriggerDoubleTap":  "Doppeltes schnelles Drücken (×2) erforderlich",
+                    "TriggerHint":  "Wählen Sie eine beliebige Einzeltaste (Pause, Caps Lock, Right Ctrl, F9) oder Kombination (Ctrl + Space). Aktivieren Sie ×2 für Doppeldruck.",
+                    "TriggerSubheaderFormat":  "Umschalttaste: {0}"
                 }
 }

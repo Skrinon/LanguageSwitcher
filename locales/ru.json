@@ -122,6 +122,14 @@
                     "BadgeDictManualOnly":  "Alt+Alt",
                     "TooltipDictConnected":  "Словарь подключён ({0} слов): автопереключение и опечатки активны",
                     "TooltipDictMissing":  "Без словаря: работает ручной перевод (Alt+Alt); загрузите словарь во вкладке «Мой словарь»",
-                    "InstalledInWindowsTag":  "Windows"
+                    "InstalledInWindowsTag":  "Windows",
+                    "SectionTriggerKey":  "Клавиша переключения раскладки",
+                    "LabelCurrentTrigger":  "Текущая клавиша:",
+                    "BtnRecordKey":  "Назначить клавишу...",
+                    "BtnRecordingKeyPrompt":  "Нажмите клавишу... (Esc — отмена)",
+                    "BtnResetTriggerKey":  "По умолчанию (Left Alt × 2)",
+                    "CheckTriggerDoubleTap":  "Требовать двойное быстрое нажатие (×2)",
+                    "TriggerHint":  "Можно назначить любую одиночную клавишу (Pause, Caps Lock, Right Ctrl, F9) или комбинацию (Ctrl + Space). Отметьте ×2 для двойного нажатия.",
+                    "TriggerSubheaderFormat":  "Триггер переключения: {0}"
                 }
 }

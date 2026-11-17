@@ -122,6 +122,14 @@
                     "BadgeDictManualOnly":  "Alt+Alt",
                     "TooltipDictConnected":  "词典已加载（{0} 词）：自动切换和拼写纠错已启用",
                     "TooltipDictMissing":  "无词典：支持手动转换 (Alt+Alt)；请在「我的词典」选项卡中导入词典",
-                    "InstalledInWindowsTag":  "Windows"
+                    "InstalledInWindowsTag":  "Windows",
+                    "SectionTriggerKey":  "切换快捷键（触发键）",
+                    "LabelCurrentTrigger":  "当前快捷键：",
+                    "BtnRecordKey":  "设置快捷键...",
+                    "BtnRecordingKeyPrompt":  "请按下任意键...（按 Esc 取消）",
+                    "BtnResetTriggerKey":  "恢复默认 (Left Alt × 2)",
+                    "CheckTriggerDoubleTap":  "需要快速双击 (×2)",
+                    "TriggerHint":  "可设置任意单键（Pause、Caps Lock、Right Ctrl、F9）或组合键（Ctrl + Space）。勾选 ×2 表示双击触发。",
+                    "TriggerSubheaderFormat":  "触发快捷键：{0}"
                 }
 }

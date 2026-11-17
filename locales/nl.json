@@ -122,6 +122,14 @@
                     "BadgeDictManualOnly":  "Alt+Alt",
                     "TooltipDictConnected":  "Woordenboek geladen ({0} woorden): automatisch wisselen en correctie actief",
                     "TooltipDictMissing":  "Geen woordenboek: handmatige conversie (Alt+Alt) actief; laad een woordenboek in «Mijn woordenboek»",
-                    "InstalledInWindowsTag":  "Windows"
+                    "InstalledInWindowsTag":  "Windows",
+                    "SectionTriggerKey":  "Schakeltoets (Trigger)",
+                    "LabelCurrentTrigger":  "Huidige toets:",
+                    "BtnRecordKey":  "Toets instellen...",
+                    "BtnRecordingKeyPrompt":  "Druk op een toets... (Esc = annuleren)",
+                    "BtnResetTriggerKey":  "Standaard (Left Alt × 2)",
+                    "CheckTriggerDoubleTap":  "Snelle dubbele tik vereisen (×2)",
+                    "TriggerHint":  "Stel elke toets in (Pause, Caps Lock, Right Ctrl, F9) of combinatie (Ctrl + Space). Vink ×2 aan voor dubbel tikken.",
+                    "TriggerSubheaderFormat":  "Trigger: {0}"
                 }
 }

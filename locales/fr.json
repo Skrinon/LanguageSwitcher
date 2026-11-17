@@ -122,6 +122,14 @@
                     "BadgeDictManualOnly":  "Alt+Alt",
                     "TooltipDictConnected":  "Dictionnaire chargé ({0} mots) : bascule auto et correction actives",
                     "TooltipDictMissing":  "Sans dictionnaire : conversion manuelle (Alt+Alt) active ; chargez un dictionnaire dans « Mon dictionnaire »",
-                    "InstalledInWindowsTag":  "Windows"
+                    "InstalledInWindowsTag":  "Windows",
+                    "SectionTriggerKey":  "Touche de bascule (Déclencheur)",
+                    "LabelCurrentTrigger":  "Touche actuelle :",
+                    "BtnRecordKey":  "Définir une touche...",
+                    "BtnRecordingKeyPrompt":  "Appuyez sur une touche... (Échap = annuler)",
+                    "BtnResetTriggerKey":  "Par défaut (Left Alt × 2)",
+                    "CheckTriggerDoubleTap":  "Exiger un double appui rapide (×2)",
+                    "TriggerHint":  "Choisissez n\u0027importe quelle touche (Pause, Caps Lock, Right Ctrl, F9) ou raccourci (Ctrl + Space). Cochez ×2 pour un double appui.",
+                    "TriggerSubheaderFormat":  "Déclencheur : {0}"
                 }
 }

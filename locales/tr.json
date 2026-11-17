@@ -122,6 +122,14 @@
                     "BadgeDictManualOnly":  "Alt+Alt",
                     "TooltipDictConnected":  "Sözlük yüklendi ({0} kelime): otomatik geçiş ve yazım düzeltme etkin",
                     "TooltipDictMissing":  "Sözlük yok: manuel dönüştürme (Alt+Alt) etkin; «Sözlüğüm» sekmesinden sözlük yükleyin",
-                    "InstalledInWindowsTag":  "Windows"
+                    "InstalledInWindowsTag":  "Windows",
+                    "SectionTriggerKey":  "Geçiş Tuşu (Tetikleyici)",
+                    "LabelCurrentTrigger":  "Geçerli tuş:",
+                    "BtnRecordKey":  "Tuş ata...",
+                    "BtnRecordingKeyPrompt":  "Bir tuşa basın... (Esc ile iptal)",
+                    "BtnResetTriggerKey":  "Varsayılan (Left Alt × 2)",
+                    "CheckTriggerDoubleTap":  "Hızlı çift basış gerektir (×2)",
+                    "TriggerHint":  "İstediğiniz tuşu (Pause, Caps Lock, Right Ctrl, F9) veya kısayolu (Ctrl + Space) atayın. Çift basış için ×2 seçin.",
+                    "TriggerSubheaderFormat":  "Tetikleyici: {0}"
                 }
 }

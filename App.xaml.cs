@@ -91,6 +91,7 @@ namespace LanguageSwitcher
             {
                 IsPaused = _settings.IsPaused
             };
+            _keyboardHookService.ApplyTriggerSettings(_settings);
 
             _windowInputService = new WindowInputService(
                 _layoutConverter,

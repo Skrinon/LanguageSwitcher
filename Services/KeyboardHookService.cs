@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -153,12 +154,17 @@ namespace LanguageSwitcher.Services
         private IntPtr _mouseHookHandle = IntPtr.Zero;
         private bool _disposed;
 
-        // Состояние детектора двойного Left Alt
-        private bool _isLeftAltDown;
-        private bool _otherKeyPressedWhileAltDown;
-        private long _leftAltDownTick;
+        // Конфигурация и состояние пользовательского триггера ручного переключения
+        private uint _triggerVirtualKey = HotkeyFormatter.DefaultTriggerVirtualKey;
+        private uint _triggerModifiers;
+        private bool _triggerRequireDoubleTap = true;
+        private bool _isTriggerKeyDown;
+        private bool _otherKeyPressedWhileTriggerDown;
+        private bool _suppressNextTriggerKeyUp;
+        private long _triggerKeyDownTick;
         private long _firstTapUpTick;
         private int _tapCount;
+        private readonly HashSet<uint> _simulatedDownKeys = new HashSet<uint>();
 
         // Внутренний буфер отслеживания текущего слова, его символов и телеметрии скорости печати
         private readonly object _bufferLock = new object();
@@ -175,9 +181,62 @@ namespace LanguageSwitcher.Services
         private const double BurstMinIntervalThresholdMs = 45.0;
 
         /// <summary>
-        /// Приостанавливает обработку триггера двойного Left Alt и автоматических функций (ручная пауза).
+        /// Приостанавливает обработку триггера и автоматических функций (ручная пауза).
         /// </summary>
         public bool IsPaused { get; set; }
+
+        /// <summary>
+        /// Блокирует срабатывание триггера, пока пользователь в окне настроек назначает новую клавишу.
+        /// </summary>
+        public bool IsRecordingTrigger { get; set; }
+
+        public uint TriggerVirtualKey
+        {
+            get => _triggerVirtualKey;
+            set
+            {
+                _triggerVirtualKey = value == 0 ? HotkeyFormatter.DefaultTriggerVirtualKey : value;
+                ResetTriggerTapState();
+            }
+        }
+
+        public uint TriggerModifiers
+        {
+            get => _triggerModifiers;
+            set
+            {
+                _triggerModifiers = value;
+                ResetTriggerTapState();
+            }
+        }
+
+        public bool TriggerRequireDoubleTap
+        {
+            get => _triggerRequireDoubleTap;
+            set
+            {
+                _triggerRequireDoubleTap = value;
+                ResetTriggerTapState();
+            }
+        }
+
+        /// <summary>
+        /// Применяет настройки пользовательской клавиши-триггера без перезапуска глобального хука.
+        /// </summary>
+        public void ApplyTriggerSettings(AppSettings settings)
+        {
+            if (settings == null)
+            {
+                throw new ArgumentNullException(nameof(settings));
+            }
+
+            _triggerVirtualKey = settings.TriggerVirtualKey == 0
+                ? HotkeyFormatter.DefaultTriggerVirtualKey
+                : settings.TriggerVirtualKey;
+            _triggerModifiers = settings.TriggerModifiers & ~HotkeyFormatter.GetModifierBit(_triggerVirtualKey);
+            _triggerRequireDoubleTap = settings.TriggerRequireDoubleTap;
+            ResetTriggerTapState();
+        }
 
         /// <summary>
         /// Предикат, определяющий, считать ли пунктуацию (., ; : ?) разделителем слова в текущей раскладке.
@@ -381,11 +440,14 @@ namespace LanguageSwitcher.Services
 
                     if (isKeyDown)
                     {
-                        HandleKeyDown(hookStruct.vkCode, hookStruct.scanCode);
+                        if (HandleKeyDownCore(hookStruct.vkCode, hookStruct.scanCode, Environment.TickCount64, isSimulation: false, out _))
+                        {
+                            return (IntPtr)1;
+                        }
                     }
                     else if (isKeyUp)
                     {
-                        if (HandleKeyUp(hookStruct.vkCode))
+                        if (HandleKeyUpCore(hookStruct.vkCode, Environment.TickCount64, isSimulation: false, out _))
                         {
                             return (IntPtr)1;
                         }
@@ -394,6 +456,26 @@ namespace LanguageSwitcher.Services
             }
 
             return CallNextHookEx(_keyboardHookHandle, nCode, wParam, lParam);
+        }
+
+        /// <summary>
+        /// Детерминированно симулирует событие клавиши для автоматического тестирования пользовательских триггеров.
+        /// Возвращает true, если событие вызвало срабатывание триггера.
+        /// </summary>
+        public bool SimulateKeyEventForTest(uint vkCode, bool isKeyDown, long timestampMs)
+        {
+            if (isKeyDown)
+            {
+                _simulatedDownKeys.Add(vkCode);
+                HandleKeyDownCore(vkCode, 0, timestampMs, isSimulation: true, out bool triggered);
+                return triggered;
+            }
+            else
+            {
+                _simulatedDownKeys.Remove(vkCode);
+                HandleKeyUpCore(vkCode, timestampMs, isSimulation: true, out bool triggered);
+                return triggered;
+            }
         }
 
         private IntPtr MouseHookCallback(int nCode, IntPtr wParam, IntPtr lParam)
@@ -406,7 +488,7 @@ namespace LanguageSwitcher.Services
                     || msg == WM_MBUTTONDOWN
                     || msg == WM_XBUTTONDOWN)
                 {
-                    ResetAltTapState();
+                    ResetTriggerTapState();
                     ResetTrackedWord();
                     RaiseInputContextReset();
                 }
@@ -415,17 +497,144 @@ namespace LanguageSwitcher.Services
             return CallNextHookEx(_mouseHookHandle, nCode, wParam, lParam);
         }
 
-        private void HandleKeyDown(uint vkCode, uint scanCode)
+        private bool MatchesTriggerKey(uint vkCode)
         {
-            long now = Environment.TickCount64;
-
-            if (vkCode == VK_LMENU)
+            if (vkCode == _triggerVirtualKey)
             {
-                if (!IsPaused && !_isLeftAltDown)
+                return true;
+            }
+
+            return _triggerVirtualKey switch
+            {
+                VK_MENU => vkCode == VK_LMENU || vkCode == VK_RMENU,
+                VK_CONTROL => vkCode == VK_LCONTROL || vkCode == VK_RCONTROL,
+                VK_SHIFT => vkCode == VK_LSHIFT || vkCode == VK_RSHIFT,
+                _ => false
+            };
+        }
+
+        private bool IsVirtualKeyDown(uint vkCode, bool isSimulation)
+        {
+            if (isSimulation)
+            {
+                if (_simulatedDownKeys.Contains(vkCode))
                 {
-                    _isLeftAltDown = true;
-                    _leftAltDownTick = now;
-                    _otherKeyPressedWhileAltDown = false;
+                    return true;
+                }
+
+                return vkCode switch
+                {
+                    VK_CONTROL => _simulatedDownKeys.Contains(VK_LCONTROL) || _simulatedDownKeys.Contains(VK_RCONTROL),
+                    VK_MENU => _simulatedDownKeys.Contains(VK_LMENU) || _simulatedDownKeys.Contains(VK_RMENU),
+                    VK_SHIFT => _simulatedDownKeys.Contains(VK_LSHIFT) || _simulatedDownKeys.Contains(VK_RSHIFT),
+                    _ => false
+                };
+            }
+
+            return IsKeyDownAsync(vkCode);
+        }
+
+        private bool AreTriggerModifiersMatched(bool isSimulation)
+        {
+            uint ownModBit = HotkeyFormatter.GetModifierBit(_triggerVirtualKey);
+            uint requiredMods = _triggerModifiers & ~ownModBit;
+
+            bool ctrlDown = IsVirtualKeyDown(VK_CONTROL, isSimulation)
+                || IsVirtualKeyDown(VK_LCONTROL, isSimulation)
+                || IsVirtualKeyDown(VK_RCONTROL, isSimulation);
+            bool altDown = IsVirtualKeyDown(VK_MENU, isSimulation)
+                || IsVirtualKeyDown(VK_LMENU, isSimulation)
+                || IsVirtualKeyDown(VK_RMENU, isSimulation);
+            bool shiftDown = IsVirtualKeyDown(VK_SHIFT, isSimulation)
+                || IsVirtualKeyDown(VK_LSHIFT, isSimulation)
+                || IsVirtualKeyDown(VK_RSHIFT, isSimulation);
+            bool winDown = IsVirtualKeyDown(VK_LWIN, isSimulation)
+                || IsVirtualKeyDown(VK_RWIN, isSimulation);
+
+            if (ownModBit != HotkeyFormatter.ModCtrl && ((requiredMods & HotkeyFormatter.ModCtrl) != 0) != ctrlDown)
+            {
+                return false;
+            }
+
+            if (ownModBit != HotkeyFormatter.ModAlt && ((requiredMods & HotkeyFormatter.ModAlt) != 0) != altDown)
+            {
+                return false;
+            }
+
+            if (ownModBit != HotkeyFormatter.ModShift && ((requiredMods & HotkeyFormatter.ModShift) != 0) != shiftDown)
+            {
+                return false;
+            }
+
+            if (ownModBit != HotkeyFormatter.ModWin && ((requiredMods & HotkeyFormatter.ModWin) != 0) != winDown)
+            {
+                return false;
+            }
+
+            return true;
+        }
+
+        private bool IsTriggerUsingAlt()
+        {
+            return (_triggerModifiers & HotkeyFormatter.ModAlt) != 0
+                || HotkeyFormatter.GetModifierBit(_triggerVirtualKey) == HotkeyFormatter.ModAlt;
+        }
+
+        private void FireTriggerEvent(bool isSimulation)
+        {
+            if (isSimulation)
+            {
+                DoubleLeftAltTriggered?.Invoke(this, EventArgs.Empty);
+                return;
+            }
+
+            if (IsTriggerUsingAlt())
+            {
+                WindowInputService.SuppressAltMenuActivation();
+            }
+
+            _dispatcher.BeginInvoke(
+                DispatcherPriority.Normal,
+                new Action(() => DoubleLeftAltTriggered?.Invoke(this, EventArgs.Empty)));
+        }
+
+        private bool HandleKeyDownCore(uint vkCode, uint scanCode, long now, bool isSimulation, out bool triggered)
+        {
+            triggered = false;
+
+            if (IsRecordingTrigger)
+            {
+                ResetTriggerTapState();
+                return false;
+            }
+
+            if (!IsPaused && MatchesTriggerKey(vkCode) && AreTriggerModifiersMatched(isSimulation))
+            {
+                bool isImmediateSingleKeyOrCombo =
+                    !_triggerRequireDoubleTap
+                    && (!HotkeyFormatter.IsModifierVirtualKey(_triggerVirtualKey) || (_triggerModifiers & ~HotkeyFormatter.GetModifierBit(_triggerVirtualKey)) != 0);
+
+                if (isImmediateSingleKeyOrCombo)
+                {
+                    if (!_isTriggerKeyDown)
+                    {
+                        _isTriggerKeyDown = true;
+                        _suppressNextTriggerKeyUp = true;
+                        _otherKeyPressedWhileTriggerDown = false;
+                        _triggerKeyDownTick = now;
+                        triggered = true;
+                        FireTriggerEvent(isSimulation);
+                    }
+
+                    // Не вызываем UpdateWordBufferOnKeyDown, чтобы сохранить слово и цикл переключения
+                    return true;
+                }
+
+                if (!_isTriggerKeyDown)
+                {
+                    _isTriggerKeyDown = true;
+                    _triggerKeyDownTick = now;
+                    _otherKeyPressedWhileTriggerDown = false;
 
                     if (_tapCount == 1 && (now - _firstTapUpTick) > MaxDoubleTapIntervalMs)
                     {
@@ -433,42 +642,59 @@ namespace LanguageSwitcher.Services
                     }
                 }
 
-                return;
+                // На втором нажатии обычной не-модификаторной клавиши при двойном тапе сохраняем буфер слова
+                return false;
             }
 
-            if (_isLeftAltDown)
+            if (_isTriggerKeyDown)
             {
-                _otherKeyPressedWhileAltDown = true;
+                _otherKeyPressedWhileTriggerDown = true;
             }
 
-            _tapCount = 0;
+            // Не сбрасываем счётчик двойного тапа, если пользователь нажимает модификатор из самой комбинации триггера
+            uint vkModBit = HotkeyFormatter.GetModifierBit(vkCode);
+            bool isRequiredModifierKey = vkModBit != 0 && (_triggerModifiers & vkModBit) != 0;
+            if (!isRequiredModifierKey)
+            {
+                _tapCount = 0;
+            }
 
-            if (!IsPaused)
+            if (!IsPaused && !isSimulation)
             {
                 UpdateWordBufferOnKeyDown(vkCode, scanCode);
             }
+
+            return false;
         }
 
-        private bool HandleKeyUp(uint vkCode)
+        private bool HandleKeyUpCore(uint vkCode, long now, bool isSimulation, out bool triggered)
         {
-            if (vkCode != VK_LMENU)
+            triggered = false;
+
+            if (IsRecordingTrigger || !MatchesTriggerKey(vkCode))
             {
                 return false;
+            }
+
+            if (_suppressNextTriggerKeyUp)
+            {
+                _isTriggerKeyDown = false;
+                _suppressNextTriggerKeyUp = false;
+                return true;
             }
 
             if (IsPaused)
             {
-                ResetAltTapState();
+                ResetTriggerTapState();
                 return false;
             }
 
-            long now = Environment.TickCount64;
-            bool wasDown = _isLeftAltDown;
-            long holdDuration = now - _leftAltDownTick;
-            bool hadOtherKey = _otherKeyPressedWhileAltDown;
+            bool wasDown = _isTriggerKeyDown;
+            long holdDuration = now - _triggerKeyDownTick;
+            bool hadOtherKey = _otherKeyPressedWhileTriggerDown;
 
-            _isLeftAltDown = false;
-            _otherKeyPressedWhileAltDown = false;
+            _isTriggerKeyDown = false;
+            _otherKeyPressedWhileTriggerDown = false;
 
             if (!wasDown || hadOtherKey || holdDuration > MaxTapHoldMs)
             {
@@ -476,6 +702,16 @@ namespace LanguageSwitcher.Services
                 return false;
             }
 
+            // Случай одиночного нажатия чистой клавиши-модификатора (например Right Ctrl, Left Alt, Right Alt)
+            if (!_triggerRequireDoubleTap)
+            {
+                _tapCount = 0;
+                triggered = true;
+                FireTriggerEvent(isSimulation);
+                return true;
+            }
+
+            // Случай двойного быстрого нажатия любой выбранной клавиши (× 2)
             if (_tapCount == 0)
             {
                 _tapCount = 1;
@@ -485,17 +721,13 @@ namespace LanguageSwitcher.Services
 
             if (_tapCount == 1)
             {
-                long intervalBetweenTaps = _leftAltDownTick - _firstTapUpTick;
+                long intervalBetweenTaps = _triggerKeyDownTick - _firstTapUpTick;
                 _tapCount = 0;
 
                 if (intervalBetweenTaps >= 0 && intervalBetweenTaps <= MaxDoubleTapIntervalMs)
                 {
-                    WindowInputService.SuppressAltMenuActivation();
-
-                    _dispatcher.BeginInvoke(
-                        DispatcherPriority.Normal,
-                        new Action(() => DoubleLeftAltTriggered?.Invoke(this, EventArgs.Empty)));
-
+                    triggered = true;
+                    FireTriggerEvent(isSimulation);
                     return true;
                 }
             }
@@ -792,10 +1024,11 @@ namespace LanguageSwitcher.Services
                 || ch == ':';
         }
 
-        private void ResetAltTapState()
+        private void ResetTriggerTapState()
         {
-            _isLeftAltDown = false;
-            _otherKeyPressedWhileAltDown = false;
+            _isTriggerKeyDown = false;
+            _otherKeyPressedWhileTriggerDown = false;
+            _suppressNextTriggerKeyUp = false;
             _tapCount = 0;
         }
 

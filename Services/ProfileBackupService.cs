@@ -263,6 +263,9 @@ namespace LanguageSwitcher.Services
             destination.EnableAppExclusions = source.EnableAppExclusions;
             destination.AutoPauseInFullscreen = source.AutoPauseInFullscreen;
             destination.BlockManualTriggerInExcluded = source.BlockManualTriggerInExcluded;
+            destination.TriggerVirtualKey = source.TriggerVirtualKey;
+            destination.TriggerModifiers = source.TriggerModifiers;
+            destination.TriggerRequireDoubleTap = source.TriggerRequireDoubleTap;
             destination.RunAtStartup = source.RunAtStartup;
             destination.IsPaused = source.IsPaused;
         }

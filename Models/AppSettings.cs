@@ -2,10 +2,131 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json.Serialization;
+using System.Windows.Input;
 using LanguageSwitcher.Services;
 
 namespace LanguageSwitcher.Models
 {
+    /// <summary>
+    /// Утилита форматирования и проверки виртуальных кодов клавиш Windows для пользовательского триггера.
+    /// </summary>
+    public static class HotkeyFormatter
+    {
+        public const uint DefaultTriggerVirtualKey = 0xA4; // VK_LMENU (Left Alt)
+
+        public const uint ModCtrl = 1;
+        public const uint ModAlt = 2;
+        public const uint ModShift = 4;
+        public const uint ModWin = 8;
+
+        public static bool IsModifierVirtualKey(uint vkCode)
+        {
+            return vkCode == 0x10 || vkCode == 0x11 || vkCode == 0x12
+                || vkCode == 0x5B || vkCode == 0x5C
+                || (vkCode >= 0xA0 && vkCode <= 0xA5);
+        }
+
+        public static uint GetModifierBit(uint vkCode)
+        {
+            return vkCode switch
+            {
+                0x11 or 0xA2 or 0xA3 => ModCtrl,
+                0x12 or 0xA4 or 0xA5 => ModAlt,
+                0x10 or 0xA0 or 0xA1 => ModShift,
+                0x5B or 0x5C => ModWin,
+                _ => 0
+            };
+        }
+
+        public static string GetKeyDisplayName(uint vkCode)
+        {
+            switch (vkCode)
+            {
+                case 0xA4: return "Left Alt";
+                case 0xA5: return "Right Alt";
+                case 0x12: return "Alt";
+                case 0xA2: return "Left Ctrl";
+                case 0xA3: return "Right Ctrl";
+                case 0x11: return "Ctrl";
+                case 0xA0: return "Left Shift";
+                case 0xA1: return "Right Shift";
+                case 0x10: return "Shift";
+                case 0x5B: return "Left Win";
+                case 0x5C: return "Right Win";
+                case 0x13: return "Pause / Break";
+                case 0x14: return "Caps Lock";
+                case 0x91: return "Scroll Lock";
+                case 0x90: return "Num Lock";
+                case 0x2D: return "Insert";
+                case 0x2E: return "Delete";
+                case 0x24: return "Home";
+                case 0x23: return "End";
+                case 0x21: return "Page Up";
+                case 0x22: return "Page Down";
+                case 0x20: return "Space";
+                case 0x09: return "Tab";
+                case 0x08: return "Backspace";
+                case 0x0D: return "Enter";
+                case 0x1B: return "Esc";
+                case 0x2C: return "Print Screen";
+                case 0xC0: return "~ (`)";
+                case 0xBA: return "; (:)";
+                case 0xBB: return "= (+)";
+                case 0xBC: return ", (<)";
+                case 0xBD: return "- (_)";
+                case 0xBE: return ". (>)";
+                case 0xBF: return "/ (?)";
+                case 0xDB: return "[ ({)";
+                case 0xDC: return "\\ (|)";
+                case 0xDD: return "] (})";
+                case 0xDE: return "' (\")";
+                case 0xE2: return "ISO Backslash";
+                case 0x6A: return "Num *";
+                case 0x6B: return "Num +";
+                case 0x6D: return "Num -";
+                case 0x6E: return "Num .";
+                case 0x6F: return "Num /";
+            }
+
+            if (vkCode >= 0x70 && vkCode <= 0x87)
+            {
+                return $"F{vkCode - 0x6F}";
+            }
+
+            if (vkCode >= 0x30 && vkCode <= 0x39)
+            {
+                return ((char)vkCode).ToString();
+            }
+
+            if (vkCode >= 0x41 && vkCode <= 0x5A)
+            {
+                return ((char)vkCode).ToString();
+            }
+
+            if (vkCode >= 0x60 && vkCode <= 0x69)
+            {
+                return $"Num {vkCode - 0x60}";
+            }
+
+            Key wpfKey = KeyInterop.KeyFromVirtualKey((int)vkCode);
+            return wpfKey != Key.None ? wpfKey.ToString() : $"VK 0x{vkCode:X2}";
+        }
+
+        public static string FormatTrigger(uint vkCode, uint modifiers, bool requireDoubleTap)
+        {
+            uint modMask = modifiers & ~GetModifierBit(vkCode);
+            var parts = new List<string>(5);
+
+            if ((modMask & ModCtrl) != 0) parts.Add("Ctrl");
+            if ((modMask & ModAlt) != 0) parts.Add("Alt");
+            if ((modMask & ModShift) != 0) parts.Add("Shift");
+            if ((modMask & ModWin) != 0) parts.Add("Win");
+            parts.Add(GetKeyDisplayName(vkCode));
+
+            string baseText = string.Join(" + ", parts);
+            return requireDoubleTap ? $"{baseText} × 2" : baseText;
+        }
+    }
     /// <summary>
     /// Тип автоматического действия, выполненного при вводе разделителя слова.
     /// </summary>
@@ -210,7 +331,22 @@ namespace LanguageSwitcher.Models
         public bool AutoPauseInFullscreen { get; set; } = true;
 
         /// <summary>
-        /// Блокировать ли также ручной двойной Left Alt в исключённых/полноэкранных окнах.
+        /// Виртуальный код (Win32 VK) клавиши-триггера для ручного переключения раскладки (по умолчанию 0xA4 = Left Alt).
+        /// </summary>
+        public uint TriggerVirtualKey { get; set; } = HotkeyFormatter.DefaultTriggerVirtualKey;
+
+        /// <summary>
+        /// Битовая маска модификаторов для триггера (1 = Ctrl, 2 = Alt, 4 = Shift, 8 = Win).
+        /// </summary>
+        public uint TriggerModifiers { get; set; } = 0;
+
+        /// <summary>
+        /// Требовать ли двойное быстрое нажатие клавиши-триггера (true — ×2, false — одиночное нажатие).
+        /// </summary>
+        public bool TriggerRequireDoubleTap { get; set; } = true;
+
+        /// <summary>
+        /// Блокировать ли также ручной триггер переключения в исключённых/полноэкранных окнах.
         /// </summary>
         public bool BlockManualTriggerInExcluded { get; set; } = true;
 
@@ -236,6 +372,14 @@ namespace LanguageSwitcher.Models
             {
                 InterfaceLanguage = "ru";
             }
+
+            if (TriggerVirtualKey == 0 || TriggerVirtualKey > 0xFE)
+            {
+                TriggerVirtualKey = HotkeyFormatter.DefaultTriggerVirtualKey;
+            }
+
+            TriggerModifiers &= (HotkeyFormatter.ModCtrl | HotkeyFormatter.ModAlt | HotkeyFormatter.ModShift | HotkeyFormatter.ModWin);
+            TriggerModifiers &= ~HotkeyFormatter.GetModifierBit(TriggerVirtualKey);
 
             DefaultSourceLanguage = layoutService.NormalizeKlid(DefaultSourceLanguage);
 
@@ -382,6 +526,9 @@ namespace LanguageSwitcher.Models
                 EnableAppExclusions = EnableAppExclusions,
                 AutoPauseInFullscreen = AutoPauseInFullscreen,
                 BlockManualTriggerInExcluded = BlockManualTriggerInExcluded,
+                TriggerVirtualKey = TriggerVirtualKey,
+                TriggerModifiers = TriggerModifiers,
+                TriggerRequireDoubleTap = TriggerRequireDoubleTap,
                 RunAtStartup = RunAtStartup,
                 IsPaused = IsPaused
             };

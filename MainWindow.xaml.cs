@@ -85,6 +85,8 @@ namespace LanguageSwitcher
         private bool _isInitializingUi;
         private bool _allowExit;
         private bool _balloonShownOnce;
+        private bool _isRecordingTriggerKey;
+        private uint _recordedModifierCandidateVk;
         private string? _editingAutoReplaceTrigger;
         private ExclusionCheckResult _latestExclusionState = ExclusionCheckResult.Active;
 
@@ -276,6 +278,7 @@ namespace LanguageSwitcher
 
         private void HideToTray()
         {
+            CancelTriggerKeyRecording();
             ShowInTaskbar = false;
             Hide();
 
@@ -317,6 +320,8 @@ namespace LanguageSwitcher
                 _isInitializingUi = false;
             }
 
+            _hookService.ApplyTriggerSettings(_settings);
+            RefreshTriggerKeyUi();
             RefreshLanguageSelectorsUi();
         }
 
@@ -355,6 +360,10 @@ namespace LanguageSwitcher
                 {
                     bool hasDict = _dictionaryService.HasDictionary(info.Klid);
                     int wordCount = hasDict ? _dictionaryService.GetWordCountForLanguage(info.Klid) : 0;
+                    string triggerSummary = HotkeyFormatter.FormatTrigger(
+                        _settings.TriggerVirtualKey,
+                        _settings.TriggerModifiers,
+                        _settings.TriggerRequireDoubleTap);
 
                     rowItems.Add(new TargetLanguageRowItem
                     {
@@ -364,7 +373,9 @@ namespace LanguageSwitcher
                         IsTargetSelected = targetSet.Contains(info.Klid),
                         DictStatusText = hasDict
                             ? _localizationService.GetString("BadgeDictConnected")
-                            : _localizationService.GetString("BadgeDictManualOnly"),
+                            : (IsDefaultTriggerSelected()
+                                ? _localizationService.GetString("BadgeDictManualOnly")
+                                : triggerSummary),
                         DictTooltip = hasDict
                             ? _localizationService.Format("TooltipDictConnected", wordCount)
                             : _localizationService.GetString("TooltipDictMissing"),
@@ -540,6 +551,35 @@ namespace LanguageSwitcher
             SaveAutoReplaceButton.Content = _editingAutoReplaceTrigger == null
                 ? _localizationService.GetString("BtnAdd")
                 : _localizationService.GetString("BtnSave");
+
+            RefreshTriggerKeyUi();
+        }
+
+        private bool IsDefaultTriggerSelected()
+        {
+            return _settings.TriggerVirtualKey == HotkeyFormatter.DefaultTriggerVirtualKey
+                && _settings.TriggerModifiers == 0
+                && _settings.TriggerRequireDoubleTap;
+        }
+
+        private void RefreshTriggerKeyUi()
+        {
+            string formattedTrigger = HotkeyFormatter.FormatTrigger(
+                _settings.TriggerVirtualKey,
+                _settings.TriggerModifiers,
+                _settings.TriggerRequireDoubleTap);
+
+            TriggerKeyDisplayText.Text = formattedTrigger;
+            AppSubheaderText.Text = _localizationService.Format("TriggerSubheaderFormat", formattedTrigger);
+
+            bool prevInit = _isInitializingUi;
+            _isInitializingUi = true;
+            TriggerDoubleTapCheckBox.IsChecked = _settings.TriggerRequireDoubleTap;
+            _isInitializingUi = prevInit;
+
+            RecordTriggerKeyButton.Content = _isRecordingTriggerKey
+                ? _localizationService.GetString("BtnRecordingKeyPrompt")
+                : _localizationService.GetString("BtnRecordKey");
         }
 
         private void TogglePauseState()
@@ -681,6 +721,163 @@ namespace LanguageSwitcher
             _settings.InterfaceLanguage = code;
             _settingsManager.Save(_settings);
             _localizationService.ApplyLanguage(code);
+        }
+
+        private void RecordTriggerKeyButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (_isRecordingTriggerKey)
+            {
+                CancelTriggerKeyRecording();
+                return;
+            }
+
+            _isRecordingTriggerKey = true;
+            _recordedModifierCandidateVk = 0;
+            _hookService.IsRecordingTrigger = true;
+            RefreshTriggerKeyUi();
+        }
+
+        private void ResetTriggerKeyButton_Click(object sender, RoutedEventArgs e)
+        {
+            CancelTriggerKeyRecording();
+            _settings.TriggerVirtualKey = HotkeyFormatter.DefaultTriggerVirtualKey;
+            _settings.TriggerModifiers = 0;
+            _settings.TriggerRequireDoubleTap = true;
+            ApplyAndPersistTriggerSettings();
+        }
+
+        private void TriggerDoubleTapCheckBox_Changed(object sender, RoutedEventArgs e)
+        {
+            if (_isInitializingUi)
+            {
+                return;
+            }
+
+            _settings.TriggerRequireDoubleTap = TriggerDoubleTapCheckBox.IsChecked == true;
+            ApplyAndPersistTriggerSettings();
+        }
+
+        private void ApplyAndPersistTriggerSettings()
+        {
+            _settings.Normalize();
+            _hookService.ApplyTriggerSettings(_settings);
+            _settingsManager.Save(_settings);
+            RefreshTriggerKeyUi();
+            RefreshLanguageSelectorsUi();
+        }
+
+        private void CancelTriggerKeyRecording()
+        {
+            if (!_isRecordingTriggerKey)
+            {
+                return;
+            }
+
+            _isRecordingTriggerKey = false;
+            _recordedModifierCandidateVk = 0;
+            _hookService.IsRecordingTrigger = false;
+            RefreshTriggerKeyUi();
+        }
+
+        private void Window_Deactivated(object? sender, EventArgs e)
+        {
+            CancelTriggerKeyRecording();
+        }
+
+        private void Window_PreviewKeyDown(object sender, KeyEventArgs e)
+        {
+            if (!_isRecordingTriggerKey)
+            {
+                return;
+            }
+
+            e.Handled = true;
+
+            Key actualKey = e.Key == Key.System ? e.SystemKey : e.Key;
+            if (actualKey == Key.None)
+            {
+                return;
+            }
+
+            uint vk = (uint)KeyInterop.VirtualKeyFromKey(actualKey);
+            if (vk == 0)
+            {
+                return;
+            }
+
+            if (HotkeyFormatter.IsModifierVirtualKey(vk))
+            {
+                _recordedModifierCandidateVk = vk;
+                return;
+            }
+
+            uint mods = GetCurrentWpfModifierMask();
+            if (actualKey == Key.Escape && mods == 0)
+            {
+                CancelTriggerKeyRecording();
+                return;
+            }
+
+            _recordedModifierCandidateVk = 0;
+            _settings.TriggerVirtualKey = vk;
+            _settings.TriggerModifiers = mods;
+            // При назначении обычной клавиши или комбинации сразу включаем удобное одиночное срабатывание
+            _settings.TriggerRequireDoubleTap = false;
+            _isRecordingTriggerKey = false;
+            _hookService.IsRecordingTrigger = false;
+            ApplyAndPersistTriggerSettings();
+        }
+
+        private void Window_PreviewKeyUp(object sender, KeyEventArgs e)
+        {
+            if (!_isRecordingTriggerKey)
+            {
+                return;
+            }
+
+            e.Handled = true;
+
+            Key actualKey = e.Key == Key.System ? e.SystemKey : e.Key;
+            if (actualKey == Key.None)
+            {
+                return;
+            }
+
+            uint vk = (uint)KeyInterop.VirtualKeyFromKey(actualKey);
+
+            // Print Screen в WPF часто генерирует только KeyUp
+            if (actualKey == Key.Snapshot)
+            {
+                _recordedModifierCandidateVk = 0;
+                _settings.TriggerVirtualKey = vk;
+                _settings.TriggerModifiers = GetCurrentWpfModifierMask();
+                _settings.TriggerRequireDoubleTap = false;
+                _isRecordingTriggerKey = false;
+                _hookService.IsRecordingTrigger = false;
+                ApplyAndPersistTriggerSettings();
+                return;
+            }
+
+            if (_recordedModifierCandidateVk != 0 && vk == _recordedModifierCandidateVk)
+            {
+                _recordedModifierCandidateVk = 0;
+                _settings.TriggerVirtualKey = vk;
+                _settings.TriggerModifiers = 0;
+                _isRecordingTriggerKey = false;
+                _hookService.IsRecordingTrigger = false;
+                ApplyAndPersistTriggerSettings();
+            }
+        }
+
+        private static uint GetCurrentWpfModifierMask()
+        {
+            uint mask = 0;
+            ModifierKeys mods = Keyboard.Modifiers;
+            if ((mods & ModifierKeys.Control) != 0) mask |= HotkeyFormatter.ModCtrl;
+            if ((mods & ModifierKeys.Alt) != 0) mask |= HotkeyFormatter.ModAlt;
+            if ((mods & ModifierKeys.Shift) != 0) mask |= HotkeyFormatter.ModShift;
+            if ((mods & ModifierKeys.Windows) != 0) mask |= HotkeyFormatter.ModWin;
+            return mask;
         }
 
         private void UseDefaultSourceCheckBox_Changed(object sender, RoutedEventArgs e)
