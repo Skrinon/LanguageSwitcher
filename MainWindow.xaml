@@ -1,0 +1,926 @@
+<Window x:Class="LanguageSwitcher.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="{DynamicResource Loc.AppTitle}"
+        Width="610"
+        Height="640"
+        MinWidth="560"
+        MinHeight="560"
+        ResizeMode="CanMinimize"
+        WindowStartupLocation="CenterScreen"
+        ShowInTaskbar="True"
+        Background="{StaticResource WindowBgBrush}"
+        FontFamily="Segoe UI Variable Text, Segoe UI, Tahoma">
+
+    <Grid Margin="16,14,16,14">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <!-- Заголовок и статус работы -->
+        <Grid Grid.Row="0" Margin="2,0,2,12">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+
+            <StackPanel Grid.Column="0">
+                <TextBlock Text="{DynamicResource Loc.AppHeader}"
+                           FontFamily="Segoe UI Variable Display, Segoe UI, Tahoma"
+                           FontSize="19"
+                           FontWeight="SemiBold"
+                           Foreground="{StaticResource TextPrimaryBrush}" />
+                <TextBlock Text="{DynamicResource Loc.AppSubheader}"
+                           FontSize="12"
+                           Foreground="{StaticResource TextSecondaryBrush}"
+                           Margin="0,2,0,0" />
+            </StackPanel>
+
+            <Border x:Name="StatusBadgeBorder"
+                    Grid.Column="1"
+                    VerticalAlignment="Center"
+                    CornerRadius="12"
+                    Padding="10,4"
+                    Background="#E6F4EA"
+                    BorderBrush="#B7DFC3"
+                    BorderThickness="1">
+                <StackPanel Orientation="Horizontal">
+                    <Ellipse x:Name="StatusDot"
+                             Width="7"
+                             Height="7"
+                             Fill="#107C10"
+                             VerticalAlignment="Center"
+                             Margin="0,0,6,0" />
+                    <TextBlock x:Name="StatusBadgeText"
+                               Text="{DynamicResource Loc.StatusActive}"
+                               FontSize="12"
+                               FontWeight="SemiBold"
+                               Foreground="#107C10" />
+                </StackPanel>
+            </Border>
+        </Grid>
+
+        <!-- 5 вкладок в стиле Windows 11 -->
+        <TabControl x:Name="MainTabControl"
+                    Grid.Row="1"
+                    Background="Transparent"
+                    BorderThickness="0"
+                    Padding="0">
+            <TabControl.Resources>
+                <Style TargetType="TabPanel">
+                    <Setter Property="Margin" Value="0,0,0,8" />
+                </Style>
+            </TabControl.Resources>
+
+            <!-- 1. Вкладка «Основные» -->
+            <TabItem Header="{DynamicResource Loc.TabGeneral}" Style="{StaticResource FluentTabItemStyle}">
+                <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="0,2,4,2">
+                    <StackPanel>
+                        <!-- Язык интерфейса -->
+                        <Border Style="{StaticResource CardBorderStyle}">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <StackPanel Grid.Column="0" VerticalAlignment="Center" Margin="0,0,14,0">
+                                    <TextBlock Text="{DynamicResource Loc.SectionInterfaceLang}"
+                                               Style="{StaticResource SectionTitleStyle}"
+                                               Margin="0" />
+                                    <TextBlock Text="{DynamicResource Loc.LabelInterfaceLang}"
+                                               FontSize="11.5"
+                                               Foreground="{StaticResource TextSecondaryBrush}"
+                                               Margin="0,2,0,0" />
+                                </StackPanel>
+                                <ComboBox x:Name="InterfaceLanguageComboBox"
+                                          Grid.Column="1"
+                                          Style="{StaticResource FluentComboBoxStyle}"
+                                          DisplayMemberPath="LanguageName"
+                                          SelectedValuePath="LanguageCode"
+                                          SelectionChanged="InterfaceLanguageComboBox_SelectionChanged" />
+                            </Grid>
+                        </Border>
+
+                        <!-- Исходный и целевые языки -->
+                        <Border Style="{StaticResource CardBorderStyle}">
+                            <StackPanel>
+                                <TextBlock Text="{DynamicResource Loc.SectionSourceLang}" Style="{StaticResource SectionTitleStyle}" />
+
+                                <CheckBox x:Name="UseDefaultSourceCheckBox"
+                                          Style="{StaticResource FluentCheckBoxStyle}"
+                                          Content="{DynamicResource Loc.CheckUseDefaultSource}"
+                                          Checked="UseDefaultSourceCheckBox_Changed"
+                                          Unchecked="UseDefaultSourceCheckBox_Changed" />
+
+                                <Grid Margin="0,10,0,0">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0"
+                                               Text="{DynamicResource Loc.LabelDefaultSource}"
+                                               FontSize="12.5"
+                                               Foreground="{StaticResource TextSecondaryBrush}"
+                                               VerticalAlignment="Center"
+                                               Margin="0,0,12,0" />
+                                    <ComboBox x:Name="DefaultSourceComboBox"
+                                              Grid.Column="1"
+                                              Style="{StaticResource FluentComboBoxStyle}"
+                                              DisplayMemberPath="DisplayName"
+                                              SelectedValuePath="Language"
+                                              SelectionChanged="DefaultSourceComboBox_SelectionChanged" />
+                                </Grid>
+
+                                <TextBlock x:Name="SourceHintText"
+                                           FontSize="11.5"
+                                           Foreground="{StaticResource TextSecondaryBrush}"
+                                           TextWrapping="Wrap"
+                                           Margin="0,7,0,12" />
+
+                                <TextBlock Text="{DynamicResource Loc.SectionTargetLangs}" Style="{StaticResource SectionTitleStyle}" />
+                                <TextBlock Text="{DynamicResource Loc.LabelTargetHint}"
+                                           FontSize="12"
+                                           Foreground="{StaticResource TextSecondaryBrush}"
+                                           Margin="0,0,0,8" />
+
+                                <WrapPanel Orientation="Horizontal">
+                                    <CheckBox x:Name="TargetEnglishCheckBox"
+                                              Style="{StaticResource FluentCheckBoxStyle}"
+                                              Content="{DynamicResource Loc.LangNameEnglish}"
+                                              Margin="0,0,18,6"
+                                              Click="TargetLanguageCheckBox_Click" />
+                                    <CheckBox x:Name="TargetRussianCheckBox"
+                                              Style="{StaticResource FluentCheckBoxStyle}"
+                                              Content="{DynamicResource Loc.LangNameRussian}"
+                                              Margin="0,0,18,6"
+                                              Click="TargetLanguageCheckBox_Click" />
+                                    <CheckBox x:Name="TargetUkrainianCheckBox"
+                                              Style="{StaticResource FluentCheckBoxStyle}"
+                                              Content="{DynamicResource Loc.LangNameUkrainian}"
+                                              Margin="0,0,0,6"
+                                              Click="TargetLanguageCheckBox_Click" />
+                                </WrapPanel>
+
+                                <Border Background="{StaticResource AccentSoftBrush}"
+                                        CornerRadius="5"
+                                        Padding="10,6"
+                                        Margin="0,4,0,0">
+                                    <TextBlock x:Name="CyclePreviewText"
+                                               FontSize="12"
+                                               Foreground="#004578"
+                                               TextWrapping="Wrap" />
+                                </Border>
+
+                                <TextBlock x:Name="TargetValidationText"
+                                           Text="{DynamicResource Loc.ValidationMinTwoLangs}"
+                                           FontSize="11.5"
+                                           Foreground="{StaticResource WarningBrush}"
+                                           Visibility="Collapsed"
+                                           Margin="0,5,0,0" />
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Интеллектуальные функции -->
+                        <Border Style="{StaticResource CardBorderStyle}">
+                            <StackPanel>
+                                <TextBlock Text="{DynamicResource Loc.SectionAutomation}" Style="{StaticResource SectionTitleStyle}" />
+                                <CheckBox x:Name="AutoSwitchLayoutCheckBox"
+                                          Style="{StaticResource FluentCheckBoxStyle}"
+                                          Content="{DynamicResource Loc.CheckAutoSwitchLayout}"
+                                          Margin="0,0,0,8"
+                                          Checked="AutomationOptionCheckBox_Changed"
+                                          Unchecked="AutomationOptionCheckBox_Changed" />
+                                <CheckBox x:Name="AutoCorrectTyposCheckBox"
+                                          Style="{StaticResource FluentCheckBoxStyle}"
+                                          Content="{DynamicResource Loc.CheckAutoCorrectTypos}"
+                                          Margin="0,0,0,8"
+                                          Checked="AutomationOptionCheckBox_Changed"
+                                          Unchecked="AutomationOptionCheckBox_Changed" />
+                                <CheckBox x:Name="IgnoreProfanityCheckBox"
+                                          Style="{StaticResource FluentCheckBoxStyle}"
+                                          Content="{DynamicResource Loc.CheckIgnoreProfanity}"
+                                          Margin="0,0,0,8"
+                                          Checked="AutomationOptionCheckBox_Changed"
+                                          Unchecked="AutomationOptionCheckBox_Changed" />
+                                <CheckBox x:Name="FixDoubleCapitalsCheckBox"
+                                          Style="{StaticResource FluentCheckBoxStyle}"
+                                          Content="{DynamicResource Loc.CheckFixDoubleCapitals}"
+                                          Margin="0,0,0,8"
+                                          Checked="AutomationOptionCheckBox_Changed"
+                                          Unchecked="AutomationOptionCheckBox_Changed" />
+                                <CheckBox x:Name="EnableCustomAutoReplaceCheckBox"
+                                          Style="{StaticResource FluentCheckBoxStyle}"
+                                          Content="{DynamicResource Loc.CheckEnableAutoReplace}"
+                                          Margin="0,0,0,8"
+                                          Checked="AutomationOptionCheckBox_Changed"
+                                          Unchecked="AutomationOptionCheckBox_Changed" />
+                                <CheckBox x:Name="EnableAppExclusionsSyncCheckBox"
+                                          Style="{StaticResource FluentCheckBoxStyle}"
+                                          Content="{DynamicResource Loc.CheckEnableExclusionsSync}"
+                                          Checked="ExclusionsFlagCheckBox_Changed"
+                                          Unchecked="ExclusionsFlagCheckBox_Changed" />
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Статистика экономии -->
+                        <Border Style="{StaticResource CardBorderStyle}">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                </Grid.RowDefinitions>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+
+                                <TextBlock Grid.Row="0" Grid.Column="0"
+                                           Text="{DynamicResource Loc.SectionStatistics}"
+                                           Style="{StaticResource SectionTitleStyle}"
+                                           Margin="0,0,0,6" />
+
+                                <Button x:Name="ResetStatsButton"
+                                        Grid.Row="0" Grid.Column="1"
+                                        Style="{StaticResource SecondaryButtonStyle}"
+                                        Content="{DynamicResource Loc.BtnResetStats}"
+                                        Padding="10,3"
+                                        FontSize="11.5"
+                                        VerticalAlignment="Top"
+                                        Click="ResetStatsButton_Click" />
+
+                                <StackPanel Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2" Orientation="Horizontal" Margin="0,0,0,5">
+                                    <TextBlock x:Name="StatTotalFixesText"
+                                               FontSize="13"
+                                               FontWeight="SemiBold"
+                                               Foreground="{StaticResource AccentBrush}"
+                                               Margin="0,0,18,0" />
+                                    <TextBlock x:Name="StatTimeSavedText"
+                                               FontSize="13"
+                                               FontWeight="SemiBold"
+                                               Foreground="#107C10" />
+                                </StackPanel>
+
+                                <TextBlock x:Name="StatBreakdownText"
+                                           Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2"
+                                           FontSize="11.5"
+                                           Foreground="{StaticResource TextSecondaryBrush}"
+                                           TextWrapping="Wrap" />
+                            </Grid>
+                        </Border>
+
+                        <!-- Системные опции и резервное копирование -->
+                        <Border Style="{StaticResource CardBorderStyle}" Margin="0,0,0,4">
+                            <StackPanel>
+                                <TextBlock Text="{DynamicResource Loc.SectionSystemBackup}" Style="{StaticResource SectionTitleStyle}" />
+                                <CheckBox x:Name="RunAtStartupCheckBox"
+                                          Style="{StaticResource FluentCheckBoxStyle}"
+                                          Content="{DynamicResource Loc.CheckRunAtStartup}"
+                                          Margin="0,0,0,10"
+                                          Checked="RunAtStartupCheckBox_Changed"
+                                          Unchecked="RunAtStartupCheckBox_Changed" />
+
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="10" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+
+                                    <Button x:Name="ExportProfileButton"
+                                            Grid.Column="0"
+                                            Style="{StaticResource SecondaryButtonStyle}"
+                                            Content="{DynamicResource Loc.BtnExportProfile}"
+                                            Click="ExportProfileButton_Click" />
+
+                                    <Button x:Name="ImportProfileButton"
+                                            Grid.Column="2"
+                                            Style="{StaticResource SecondaryButtonStyle}"
+                                            Content="{DynamicResource Loc.BtnImportProfile}"
+                                            Click="ImportProfileButton_Click" />
+                                </Grid>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+
+            <!-- 2. Вкладка «Исключения» -->
+            <TabItem Header="{DynamicResource Loc.TabExceptions}" Style="{StaticResource FluentTabItemStyle}">
+                <Border Style="{StaticResource CardBorderStyle}" Margin="0">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+
+                        <StackPanel Grid.Row="0" Margin="0,0,0,10">
+                            <TextBlock Text="{DynamicResource Loc.ExceptionsTitle}" Style="{StaticResource SectionTitleStyle}" Margin="0,0,0,4" />
+                            <TextBlock Text="{DynamicResource Loc.ExceptionsHint}"
+                                       FontSize="11.8"
+                                       Foreground="{StaticResource TextSecondaryBrush}"
+                                       TextWrapping="Wrap" />
+                        </StackPanel>
+
+                        <Grid Grid.Row="1" Margin="0,0,0,8">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="8" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <TextBox x:Name="ExceptionInputTextBox"
+                                     Grid.Column="0"
+                                     Style="{StaticResource FluentTextBoxStyle}"
+                                     AcceptsReturn="True"
+                                     Height="34"
+                                     PreviewKeyDown="ExceptionInputTextBox_PreviewKeyDown" />
+                            <Button x:Name="AddExceptionButton"
+                                    Grid.Column="2"
+                                    Style="{StaticResource AccentButtonStyle}"
+                                    Content="{DynamicResource Loc.BtnAdd}"
+                                    MinWidth="96"
+                                    Click="AddExceptionButton_Click" />
+                        </Grid>
+
+                        <Grid Grid.Row="2" Margin="0,0,0,8">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0"
+                                       Text="{DynamicResource Loc.LabelSearch}"
+                                       FontSize="12.5"
+                                       Foreground="{StaticResource TextSecondaryBrush}"
+                                       VerticalAlignment="Center"
+                                       Margin="0,0,8,0" />
+                            <TextBox x:Name="ExceptionSearchTextBox"
+                                     Grid.Column="1"
+                                     Style="{StaticResource FluentTextBoxStyle}"
+                                     Height="30"
+                                     TextChanged="ExceptionSearchTextBox_TextChanged" />
+                        </Grid>
+
+                        <ListBox x:Name="ExceptionsListBox"
+                                 Grid.Row="3"
+                                 Style="{StaticResource FluentListBoxStyle}"
+                                 KeyDown="ExceptionsListBox_KeyDown">
+                            <ListBox.ItemTemplate>
+                                <DataTemplate>
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Grid.Column="0"
+                                                   Text="{Binding}"
+                                                   VerticalAlignment="Center"
+                                                   FontSize="12.8" />
+                                        <Button Grid.Column="1"
+                                                Style="{StaticResource IconActionButtonStyle}"
+                                                Content="✕"
+                                                Tag="{Binding}"
+                                                Click="RemoveExceptionButton_Click" />
+                                    </Grid>
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+
+                        <Grid Grid.Row="4" Margin="0,10,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock x:Name="ExceptionsCountText"
+                                       Grid.Column="0"
+                                       FontSize="12"
+                                       Foreground="{StaticResource TextSecondaryBrush}"
+                                       VerticalAlignment="Center" />
+                            <Button x:Name="ClearExceptionsButton"
+                                    Grid.Column="1"
+                                    Style="{StaticResource SecondaryButtonStyle}"
+                                    Content="{DynamicResource Loc.BtnClear}"
+                                    Click="ClearExceptionsButton_Click" />
+                        </Grid>
+                    </Grid>
+                </Border>
+            </TabItem>
+
+            <!-- 3. Вкладка «Мой словарь» -->
+            <TabItem Header="{DynamicResource Loc.TabUserDictionary}" Style="{StaticResource FluentTabItemStyle}">
+                <Border Style="{StaticResource CardBorderStyle}" Margin="0">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+
+                        <StackPanel Grid.Row="0" Margin="0,0,0,8">
+                            <TextBlock Text="{DynamicResource Loc.DictTitle}" Style="{StaticResource SectionTitleStyle}" Margin="0,0,0,3" />
+                            <TextBlock Text="{DynamicResource Loc.DictHint}"
+                                       FontSize="11.8"
+                                       Foreground="{StaticResource TextSecondaryBrush}"
+                                       TextWrapping="Wrap" />
+                        </StackPanel>
+
+                        <Grid Grid.Row="1" Margin="0,0,0,8">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="125" />
+                                <ColumnDefinition Width="8" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="8" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <ComboBox x:Name="DictAddLanguageComboBox"
+                                      Grid.Column="0"
+                                      Style="{StaticResource FluentComboBoxStyle}"
+                                      DisplayMemberPath="DisplayName"
+                                      SelectedValuePath="Language" />
+                            <TextBox x:Name="DictWordInputTextBox"
+                                     Grid.Column="2"
+                                     Style="{StaticResource FluentTextBoxStyle}"
+                                     AcceptsReturn="True"
+                                     Height="32"
+                                     PreviewKeyDown="DictWordInputTextBox_PreviewKeyDown" />
+                            <Button x:Name="AddDictWordButton"
+                                    Grid.Column="4"
+                                    Style="{StaticResource AccentButtonStyle}"
+                                    Content="{DynamicResource Loc.BtnAdd}"
+                                    MinWidth="92"
+                                    Click="AddDictWordButton_Click" />
+                        </Grid>
+
+                        <Grid Grid.Row="2" Margin="0,0,0,8">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="10" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Button x:Name="ImportDictionaryButton"
+                                    Grid.Column="0"
+                                    Style="{StaticResource SecondaryButtonStyle}"
+                                    Content="{DynamicResource Loc.DictImportButton}"
+                                    Click="ImportDictionaryButton_Click" />
+                            <StackPanel Grid.Column="2" VerticalAlignment="Center">
+                                <ProgressBar x:Name="DictImportProgressBar"
+                                             Height="6"
+                                             Minimum="0"
+                                             Maximum="100"
+                                             Visibility="Collapsed"
+                                             Margin="0,0,0,3" />
+                                <TextBlock x:Name="DictImportStatusText"
+                                           FontSize="11.5"
+                                           Foreground="{StaticResource TextSecondaryBrush}"
+                                           TextTrimming="CharacterEllipsis" />
+                            </StackPanel>
+                        </Grid>
+
+                        <Grid Grid.Row="3" Margin="0,0,0,8">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="135" />
+                                <ColumnDefinition Width="10" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <ComboBox x:Name="DictFilterLanguageComboBox"
+                                      Grid.Column="0"
+                                      Style="{StaticResource FluentComboBoxStyle}"
+                                      DisplayMemberPath="Label"
+                                      SelectedValuePath="Language"
+                                      SelectionChanged="DictFilterLanguageComboBox_SelectionChanged" />
+                            <TextBlock Grid.Column="2"
+                                       Text="{DynamicResource Loc.LabelSearch}"
+                                       FontSize="12.5"
+                                       Foreground="{StaticResource TextSecondaryBrush}"
+                                       VerticalAlignment="Center"
+                                       Margin="0,0,8,0" />
+                            <TextBox x:Name="DictSearchTextBox"
+                                     Grid.Column="3"
+                                     Style="{StaticResource FluentTextBoxStyle}"
+                                     Height="30"
+                                     TextChanged="DictSearchTextBox_TextChanged" />
+                        </Grid>
+
+                        <ListBox x:Name="UserDictionaryListBox"
+                                 Grid.Row="4"
+                                 Style="{StaticResource FluentListBoxStyle}"
+                                 KeyDown="UserDictionaryListBox_KeyDown">
+                            <ListBox.ItemTemplate>
+                                <DataTemplate>
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Grid.Column="0"
+                                                   Text="{Binding Word}"
+                                                   VerticalAlignment="Center"
+                                                   FontSize="12.8" />
+                                        <Border Grid.Column="1"
+                                                CornerRadius="4"
+                                                Padding="6,2"
+                                                Margin="8,0,8,0"
+                                                Background="{StaticResource AccentSoftBrush}"
+                                                VerticalAlignment="Center">
+                                            <TextBlock Text="{Binding LanguageCode}"
+                                                       FontSize="10.5"
+                                                       FontWeight="SemiBold"
+                                                       Foreground="{StaticResource AccentBrush}" />
+                                        </Border>
+                                        <Button Grid.Column="2"
+                                                Style="{StaticResource IconActionButtonStyle}"
+                                                Content="✕"
+                                                Tag="{Binding}"
+                                                Click="RemoveDictWordButton_Click" />
+                                    </Grid>
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+
+                        <Grid Grid.Row="5" Margin="0,10,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock x:Name="DictCountText"
+                                       Grid.Column="0"
+                                       FontSize="12"
+                                       Foreground="{StaticResource TextSecondaryBrush}"
+                                       VerticalAlignment="Center" />
+                            <Button x:Name="ClearDictButton"
+                                    Grid.Column="1"
+                                    Style="{StaticResource SecondaryButtonStyle}"
+                                    Content="{DynamicResource Loc.BtnClear}"
+                                    Click="ClearDictButton_Click" />
+                        </Grid>
+                    </Grid>
+                </Border>
+            </TabItem>
+
+            <!-- 4. Вкладка «Автозамена» -->
+            <TabItem Header="{DynamicResource Loc.TabAutoReplace}" Style="{StaticResource FluentTabItemStyle}">
+                <Border Style="{StaticResource CardBorderStyle}" Margin="0">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+
+                        <StackPanel Grid.Row="0" Margin="0,0,0,8">
+                            <TextBlock Text="{DynamicResource Loc.AutoReplaceTitle}" Style="{StaticResource SectionTitleStyle}" Margin="0,0,0,3" />
+                            <TextBlock Text="{DynamicResource Loc.AutoReplaceHint}"
+                                       FontSize="11.8"
+                                       Foreground="{StaticResource TextSecondaryBrush}"
+                                       TextWrapping="Wrap" />
+                        </StackPanel>
+
+                        <Border Grid.Row="1"
+                                Background="#FAFAFA"
+                                BorderBrush="{StaticResource CardBorderBrush}"
+                                BorderThickness="1"
+                                CornerRadius="6"
+                                Padding="10,8"
+                                Margin="0,0,0,8">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="6" />
+                                    <RowDefinition Height="Auto" />
+                                </Grid.RowDefinitions>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="98" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="8" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+
+                                <TextBlock Grid.Row="0" Grid.Column="0"
+                                           Text="{DynamicResource Loc.LabelTrigger}"
+                                           FontSize="12.2"
+                                           Foreground="{StaticResource TextSecondaryBrush}"
+                                           VerticalAlignment="Center" />
+                                <TextBox x:Name="AutoReplaceTriggerTextBox"
+                                         Grid.Row="0" Grid.Column="1"
+                                         Style="{StaticResource FluentTextBoxStyle}"
+                                         Height="30" />
+
+                                <StackPanel Grid.Row="0" Grid.Column="3" Orientation="Horizontal">
+                                    <Button x:Name="SaveAutoReplaceButton"
+                                            Style="{StaticResource AccentButtonStyle}"
+                                            Content="{DynamicResource Loc.BtnAdd}"
+                                            MinWidth="88"
+                                            Click="SaveAutoReplaceButton_Click" />
+                                    <Button x:Name="CancelAutoReplaceEditButton"
+                                            Style="{StaticResource SecondaryButtonStyle}"
+                                            Content="{DynamicResource Loc.BtnCancel}"
+                                            Margin="6,0,0,0"
+                                            Visibility="Collapsed"
+                                            Click="CancelAutoReplaceEditButton_Click" />
+                                </StackPanel>
+
+                                <TextBlock Grid.Row="2" Grid.Column="0"
+                                           Text="{DynamicResource Loc.LabelReplacement}"
+                                           FontSize="12.2"
+                                           Foreground="{StaticResource TextSecondaryBrush}"
+                                           VerticalAlignment="Top"
+                                           Margin="0,6,0,0" />
+                                <TextBox x:Name="AutoReplaceReplacementTextBox"
+                                         Grid.Row="2" Grid.Column="1" Grid.ColumnSpan="3"
+                                         Style="{StaticResource FluentTextBoxStyle}"
+                                         AcceptsReturn="True"
+                                         TextWrapping="Wrap"
+                                         VerticalContentAlignment="Top"
+                                         VerticalScrollBarVisibility="Auto"
+                                         Height="54" />
+                            </Grid>
+                        </Border>
+
+                        <Grid Grid.Row="2" Margin="0,0,0,6">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0"
+                                       Text="{DynamicResource Loc.LabelSearch}"
+                                       FontSize="12.5"
+                                       Foreground="{StaticResource TextSecondaryBrush}"
+                                       VerticalAlignment="Center"
+                                       Margin="0,0,8,0" />
+                            <TextBox x:Name="AutoReplaceSearchTextBox"
+                                     Grid.Column="1"
+                                     Style="{StaticResource FluentTextBoxStyle}"
+                                     Height="30"
+                                     TextChanged="AutoReplaceSearchTextBox_TextChanged" />
+                        </Grid>
+
+                        <!-- Заголовок таблицы правил -->
+                        <Border Grid.Row="3"
+                                Background="#F7F7F7"
+                                BorderBrush="{StaticResource CardBorderBrush}"
+                                BorderThickness="1,1,1,0"
+                                Padding="10,5">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="36" />
+                                    <ColumnDefinition Width="120" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="62" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Grid.Column="0" Text="{DynamicResource Loc.ColActive}" FontSize="11.5" FontWeight="SemiBold" Foreground="{StaticResource TextSecondaryBrush}" />
+                                <TextBlock Grid.Column="1" Text="{DynamicResource Loc.ColTrigger}" FontSize="11.5" FontWeight="SemiBold" Foreground="{StaticResource TextSecondaryBrush}" />
+                                <TextBlock Grid.Column="2" Text="{DynamicResource Loc.ColReplacement}" FontSize="11.5" FontWeight="SemiBold" Foreground="{StaticResource TextSecondaryBrush}" />
+                                <TextBlock Grid.Column="3" Text="{DynamicResource Loc.ColActions}" FontSize="11.5" FontWeight="SemiBold" Foreground="{StaticResource TextSecondaryBrush}" HorizontalAlignment="Right" />
+                            </Grid>
+                        </Border>
+
+                        <ListBox x:Name="AutoReplaceListBox"
+                                 Grid.Row="4"
+                                 Style="{StaticResource FluentListBoxStyle}"
+                                 KeyDown="AutoReplaceListBox_KeyDown">
+                            <ListBox.ItemTemplate>
+                                <DataTemplate>
+                                    <Grid ToolTip="{Binding Replacement}">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="36" />
+                                            <ColumnDefinition Width="120" />
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="62" />
+                                        </Grid.ColumnDefinitions>
+                                        <CheckBox Grid.Column="0"
+                                                  Style="{StaticResource FluentCheckBoxStyle}"
+                                                  IsChecked="{Binding IsEnabled, Mode=TwoWay}"
+                                                  Tag="{Binding}"
+                                                  Click="AutoReplaceEnabledCheckBox_Click" />
+                                        <TextBlock Grid.Column="1"
+                                                   Text="{Binding Trigger}"
+                                                   FontWeight="SemiBold"
+                                                   VerticalAlignment="Center"
+                                                   TextTrimming="CharacterEllipsis"
+                                                   Margin="0,0,8,0" />
+                                        <TextBlock Grid.Column="2"
+                                                   Text="{Binding ReplacementPreview}"
+                                                   Foreground="{StaticResource TextSecondaryBrush}"
+                                                   VerticalAlignment="Center"
+                                                   TextTrimming="CharacterEllipsis"
+                                                   Margin="0,0,8,0" />
+                                        <StackPanel Grid.Column="3" Orientation="Horizontal" HorizontalAlignment="Right">
+                                            <Button Style="{StaticResource IconActionButtonStyle}"
+                                                    Content="✎"
+                                                    Tag="{Binding}"
+                                                    Click="EditAutoReplaceButton_Click" />
+                                            <Button Style="{StaticResource IconActionButtonStyle}"
+                                                    Content="✕"
+                                                    Tag="{Binding}"
+                                                    Click="RemoveAutoReplaceButton_Click" />
+                                        </StackPanel>
+                                    </Grid>
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+
+                        <Grid Grid.Row="5" Margin="0,10,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock x:Name="AutoReplaceCountText"
+                                       Grid.Column="0"
+                                       FontSize="12"
+                                       Foreground="{StaticResource TextSecondaryBrush}"
+                                       VerticalAlignment="Center" />
+                            <Button x:Name="ClearAutoReplaceButton"
+                                    Grid.Column="1"
+                                    Style="{StaticResource SecondaryButtonStyle}"
+                                    Content="{DynamicResource Loc.BtnClear}"
+                                    Click="ClearAutoReplaceButton_Click" />
+                        </Grid>
+                    </Grid>
+                </Border>
+            </TabItem>
+
+            <!-- 5. Вкладка «Программы» -->
+            <TabItem Header="{DynamicResource Loc.TabPrograms}" Style="{StaticResource FluentTabItemStyle}">
+                <Border Style="{StaticResource CardBorderStyle}" Margin="0">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+
+                        <!-- Главный флаг сверху вкладки -->
+                        <StackPanel Grid.Row="0" Margin="0,0,0,10">
+                            <TextBlock Text="{DynamicResource Loc.ProgramsTitle}" Style="{StaticResource SectionTitleStyle}" Margin="0,0,0,6" />
+                            <CheckBox x:Name="MasterExclusionsCheckBox"
+                                      Style="{StaticResource FluentCheckBoxStyle}"
+                                      Content="{DynamicResource Loc.CheckMasterExclusions}"
+                                      FontWeight="SemiBold"
+                                      Checked="ExclusionsFlagCheckBox_Changed"
+                                      Unchecked="ExclusionsFlagCheckBox_Changed" />
+                        </StackPanel>
+
+                        <!-- Остальные элементы блокируются, когда главная галочка снята -->
+                        <Grid x:Name="ExclusionsBodyPanel"
+                              Grid.Row="1"
+                              IsEnabled="{Binding ElementName=MasterExclusionsCheckBox, Path=IsChecked}">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="*" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+
+                            <StackPanel Grid.Row="0" Margin="0,0,0,10">
+                                <CheckBox x:Name="AutoPauseFullscreenCheckBox"
+                                          Style="{StaticResource FluentCheckBoxStyle}"
+                                          Content="{DynamicResource Loc.CheckAutoPauseFullscreen}"
+                                          Margin="0,0,0,7"
+                                          Checked="ExclusionsSubOptionCheckBox_Changed"
+                                          Unchecked="ExclusionsSubOptionCheckBox_Changed" />
+                                <CheckBox x:Name="BlockManualExcludedCheckBox"
+                                          Style="{StaticResource FluentCheckBoxStyle}"
+                                          Content="{DynamicResource Loc.CheckBlockManualInExcluded}"
+                                          Checked="ExclusionsSubOptionCheckBox_Changed"
+                                          Unchecked="ExclusionsSubOptionCheckBox_Changed" />
+                            </StackPanel>
+
+                            <!-- 3 способа добавления программ -->
+                            <Grid Grid.Row="1" Margin="0,0,0,8">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="8" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Grid.Column="0"
+                                           Text="{DynamicResource Loc.ProgramsAddLabel}"
+                                           FontSize="12.3"
+                                           Foreground="{StaticResource TextSecondaryBrush}"
+                                           VerticalAlignment="Center"
+                                           Margin="0,0,8,0" />
+                                <TextBox x:Name="ProgramExeTextBox"
+                                         Grid.Column="1"
+                                         Style="{StaticResource FluentTextBoxStyle}"
+                                         Height="32"
+                                         KeyDown="ProgramExeTextBox_KeyDown" />
+                                <Button x:Name="AddProgramButton"
+                                        Grid.Column="3"
+                                        Style="{StaticResource AccentButtonStyle}"
+                                        Content="{DynamicResource Loc.BtnAdd}"
+                                        MinWidth="88"
+                                        Click="AddProgramButton_Click" />
+                            </Grid>
+
+                            <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="0,0,0,10">
+                                <Button x:Name="BrowseExeButton"
+                                        Style="{StaticResource SecondaryButtonStyle}"
+                                        Content="{DynamicResource Loc.BtnBrowseExe}"
+                                        Margin="0,0,8,0"
+                                        Click="BrowseExeButton_Click" />
+                                <Button x:Name="PickRunningAppButton"
+                                        Style="{StaticResource SecondaryButtonStyle}"
+                                        Content="{DynamicResource Loc.BtnFromRunning}"
+                                        Click="PickRunningAppButton_Click" />
+                            </StackPanel>
+
+                            <ListBox x:Name="BlacklistListBox"
+                                     Grid.Row="3"
+                                     Style="{StaticResource FluentListBoxStyle}"
+                                     KeyDown="BlacklistListBox_KeyDown">
+                                <ListBox.ItemTemplate>
+                                    <DataTemplate>
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Grid.Column="0"
+                                                       Text="{Binding}"
+                                                       VerticalAlignment="Center"
+                                                       FontSize="12.8" />
+                                            <Button Grid.Column="1"
+                                                    Style="{StaticResource IconActionButtonStyle}"
+                                                    Content="✕"
+                                                    Tag="{Binding}"
+                                                    Click="RemoveProgramButton_Click" />
+                                        </Grid>
+                                    </DataTemplate>
+                                </ListBox.ItemTemplate>
+                            </ListBox>
+
+                            <Grid Grid.Row="4" Margin="0,10,0,0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock x:Name="ProgramsCountText"
+                                           Grid.Column="0"
+                                           FontSize="12"
+                                           Foreground="{StaticResource TextSecondaryBrush}"
+                                           VerticalAlignment="Center" />
+                                <Button x:Name="ClearProgramsButton"
+                                        Grid.Column="1"
+                                        Style="{StaticResource SecondaryButtonStyle}"
+                                        Content="{DynamicResource Loc.BtnClear}"
+                                        Click="ClearProgramsButton_Click" />
+                            </Grid>
+                        </Grid>
+
+                        <TextBlock Grid.Row="2"
+                                   Text="{DynamicResource Loc.ProgramsHint}"
+                                   FontSize="11.5"
+                                   Foreground="{StaticResource TextSecondaryBrush}"
+                                   TextWrapping="Wrap"
+                                   Margin="0,10,0,0" />
+                    </Grid>
+                </Border>
+            </TabItem>
+        </TabControl>
+
+        <!-- Нижняя панель статуса и действий -->
+        <Grid Grid.Row="2" Margin="2,10,2,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="8" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+
+            <TextBlock x:Name="LastActionText"
+                       Grid.Column="0"
+                       FontSize="11.8"
+                       Foreground="{StaticResource TextSecondaryBrush}"
+                       VerticalAlignment="Center"
+                       TextTrimming="CharacterEllipsis"
+                       Margin="0,0,10,0" />
+
+            <Button x:Name="PauseToggleButton"
+                    Grid.Column="1"
+                    Style="{StaticResource SecondaryButtonStyle}"
+                    Content="{DynamicResource Loc.BtnPause}"
+                    MinWidth="104"
+                    Click="PauseToggleButton_Click" />
+
+            <Button x:Name="HideToTrayButton"
+                    Grid.Column="3"
+                    Style="{StaticResource AccentButtonStyle}"
+                    Content="{DynamicResource Loc.BtnHideToTray}"
+                    MinWidth="136"
+                    Click="HideToTrayButton_Click" />
+        </Grid>
+    </Grid>
+</Window>

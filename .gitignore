@@ -1,0 +1,19 @@
+# Build outputs & publish folders
+bin/
+obj/
+Publish/
+ReleaseSingleFile/
+
+# IDE & user-specific files
+.vs/
+*.user
+*.suo
+*.cache
+
+# Local runtime configuration & statistics JSON files
+settings.json
+ignored_words.json
+user_dictionary.json
+autoreplace.json
+app_blacklist.json
+statistics.json
